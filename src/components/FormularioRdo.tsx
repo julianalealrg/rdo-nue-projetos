@@ -33,11 +33,12 @@ import {
 } from "@/lib/rdo";
 import {
   ArquivoMuitoGrandeError,
-  CATEGORIAS_FOTO,
-  type CategoriaFoto,
   atualizarFotoCampos,
+  fetchAmbientesDaObra,
+  limparAmbienteRdo,
   persistirOrdemFotos,
   removerFoto,
+  renomearAmbienteRdo,
   uploadAssinatura,
   uploadFoto,
 } from "@/lib/fotos";
