@@ -23,7 +23,7 @@ function SidebarContent({
 }) {
   return (
     <div className="flex h-full w-60 flex-col bg-nue-black text-nue-offwhite">
-      <div className="px-4 py-4">
+      <div className="flex justify-center px-4 py-4">
         <img
           src={logoUrl}
           alt="NUE Projetos"
