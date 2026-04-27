@@ -291,6 +291,7 @@ export async function sincronizarFilhos(args: {
         rdo_id,
         descricao: p.descricao.trim(),
         prioridade: p.prioridade,
+        ambiente_id: p.ambiente_id ?? null,
         ordem: i,
       })),
     );
@@ -301,10 +302,92 @@ export async function sincronizarFilhos(args: {
       pontosFiltrados.map((p, i) => ({
         rdo_id,
         descricao: p.descricao.trim(),
+        ambiente_id: p.ambiente_id ?? null,
         ordem: i,
       })),
     );
     if (e) throw new Error(`Falha ao salvar pontos de atenção: ${e.message}`);
+  }
+}
+
+/* ---------------- Observações por ambiente ---------------- */
+
+export async function upsertObservacaoAmbiente(
+  rdo_id: string,
+  ambiente_id: string,
+  texto: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("rdo_observacoes_ambiente")
+    .upsert(
+      { rdo_id, ambiente_id, texto },
+      { onConflict: "rdo_id,ambiente_id" },
+    );
+  if (error) throw new Error(`Falha ao salvar observação: ${error.message}`);
+}
+
+export async function removerObservacaoAmbiente(
+  rdo_id: string,
+  ambiente_id: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("rdo_observacoes_ambiente")
+    .delete()
+    .eq("rdo_id", rdo_id)
+    .eq("ambiente_id", ambiente_id);
+  if (error) throw new Error(`Falha ao remover observação: ${error.message}`);
+}
+
+/** Remove tudo de um ambiente neste RDO: fotos, observações, pendências e pontos. */
+export async function removerAmbienteDoRdo(args: {
+  rdo_id: string;
+  ambiente_id: string;
+}): Promise<void> {
+  // Fotos: deletar storage + linhas
+  const { data: fotosAmb, error: fErr } = await supabase
+    .from("rdo_fotos")
+    .select("id, url")
+    .eq("rdo_id", args.rdo_id)
+    .eq("ambiente_id", args.ambiente_id);
+  if (fErr) throw new Error(`Falha ao listar fotos: ${fErr.message}`);
+
+  if (fotosAmb && fotosAmb.length > 0) {
+    const paths = fotosAmb
+      .map((f) => {
+        const idx = f.url.indexOf("/rdo-fotos/");
+        return idx === -1 ? null : f.url.slice(idx + "/rdo-fotos/".length);
+      })
+      .filter((p): p is string => !!p);
+    if (paths.length > 0) {
+      await supabase.storage.from("rdo-fotos").remove(paths);
+    }
+    const { error: dfErr } = await supabase
+      .from("rdo_fotos")
+      .delete()
+      .eq("rdo_id", args.rdo_id)
+      .eq("ambiente_id", args.ambiente_id);
+    if (dfErr) throw new Error(`Falha ao remover fotos: ${dfErr.message}`);
+  }
+
+  const results = await Promise.all([
+    supabase
+      .from("rdo_observacoes_ambiente")
+      .delete()
+      .eq("rdo_id", args.rdo_id)
+      .eq("ambiente_id", args.ambiente_id),
+    supabase
+      .from("rdo_pendencias")
+      .delete()
+      .eq("rdo_id", args.rdo_id)
+      .eq("ambiente_id", args.ambiente_id),
+    supabase
+      .from("rdo_pontos_atencao")
+      .delete()
+      .eq("rdo_id", args.rdo_id)
+      .eq("ambiente_id", args.ambiente_id),
+  ]);
+  for (const r of results) {
+    if (r.error) throw new Error(`Falha ao remover ambiente: ${r.error.message}`);
   }
 }
 
