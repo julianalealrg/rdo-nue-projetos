@@ -272,7 +272,6 @@ export async function sincronizarFilhos(args: {
     if (e) throw new Error(`Falha ao salvar pontos de atenção: ${e.message}`);
   }
 }
-}
 
 /** Cria snapshot do RDO + filhos atual e insere em rdo_versoes. */
 export async function criarVersaoSnapshot(args: {
