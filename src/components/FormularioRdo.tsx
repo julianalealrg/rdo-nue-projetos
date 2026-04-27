@@ -1361,6 +1361,7 @@ function SecaoFotos({
   onSavingDone,
   onSavingError,
   agendarPersistirOrdem,
+  mensagemBloqueio,
 }: {
   rdoId: string | null;
   obraId: string;
@@ -1370,6 +1371,7 @@ function SecaoFotos({
   onSavingDone: () => void;
   onSavingError: (msg: string) => void;
   agendarPersistirOrdem: (lista: RdoFoto[]) => void;
+  mensagemBloqueio: string;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploads, setUploads] = useState<{ id: string; nome: string; status: "uploading" | "erro"; progresso: number; erro?: string; file?: File }[]>([]);
