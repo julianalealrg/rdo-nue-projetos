@@ -49,7 +49,7 @@ export const styles = StyleSheet.create({
     right: 36,
     flexDirection: "row",
     justifyContent: "space-between",
-    fontSize: 8,
+    fontSize: 9,
     color: COLORS.graphite,
   },
   // Capa
@@ -58,22 +58,29 @@ export const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     fontSize: 28,
     color: COLORS.black,
-    marginBottom: 4,
+    marginBottom: 10,
   },
-  capaSubtitulo: { fontSize: 13, color: COLORS.graphite, marginBottom: 24 },
+  capaSubtitulo: { fontSize: 13, color: COLORS.graphite, marginBottom: 28 },
   metaWrap: { flexDirection: "row", flexWrap: "wrap", marginTop: 8 },
-  metaCol: { width: "50%", marginBottom: 8 },
+  metaCol: { width: "50%", marginBottom: 14, paddingRight: 8 },
   metaLabel: { fontSize: 9, color: COLORS.graphite, textTransform: "uppercase" },
   metaValue: { fontSize: 12, color: COLORS.black, marginTop: 2 },
-  divider: { height: 1, backgroundColor: COLORS.taupe, marginVertical: 18 },
-  capaFooter: { position: "absolute", bottom: 36, left: 36, fontSize: 9, color: COLORS.graphite },
+  divider: { height: 1, backgroundColor: COLORS.taupe, marginTop: 18, marginBottom: 12 },
+  capaExportadoEm: { fontSize: 9, color: COLORS.graphite },
   // RDO
   rdoHeader: { marginBottom: 8 },
   rdoTitleRow: { flexDirection: "row", alignItems: "baseline", marginBottom: 4 },
-  rdoId: { fontSize: 10, color: COLORS.graphite, marginRight: 8 },
+  rdoId: { fontSize: 10, color: COLORS.graphite, marginRight: 8, fontFamily: "Courier" },
   rdoData: { fontSize: 14, fontFamily: "Helvetica-Bold", color: COLORS.black },
   rdoHora: { fontSize: 10, color: COLORS.graphite, marginLeft: 8 },
-  badgeRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 10 },
+  rdoResponsavel: {
+    fontSize: 9,
+    color: COLORS.graphite,
+    fontFamily: "Courier",
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 6 },
   badge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -95,12 +102,20 @@ export const styles = StyleSheet.create({
   bullet: { flexDirection: "row", marginBottom: 2 },
   bulletDot: { width: 8, fontSize: 10 },
   // ambiente
+  ambienteBloco: {
+    marginTop: 18,
+    paddingHorizontal: 10,
+    paddingBottom: 6,
+    borderLeftWidth: 2,
+    borderLeftColor: COLORS.taupe,
+  },
   ambienteHeader: {
     backgroundColor: COLORS.taupeLight,
     paddingVertical: 6,
     paddingHorizontal: 8,
-    marginTop: 10,
-    marginBottom: 6,
+    marginBottom: 8,
+    marginLeft: -10,
+    marginRight: -10,
   },
   ambienteTitle: { fontSize: 12, fontFamily: "Helvetica-Bold", color: COLORS.black },
   // fotos
@@ -187,7 +202,7 @@ export function Capa({ obra, rdos, escopo, rdoUnico, logoDataUrl }: CapaProps) {
         </View>
       </View>
       <View style={styles.divider} />
-      <Text style={styles.capaFooter}>Exportado em {nowRecife()}</Text>
+      <Text style={styles.capaExportadoEm}>Exportado em {nowRecife()}</Text>
     </View>
   );
 }
@@ -224,17 +239,15 @@ export function RdoBloco({ rdo, fotosCache, variant = "completo" }: RdoBlocoProp
         <View style={styles.badgeRow}>
           <Badge kind="tipo" value={rdo.tipo_visita} label={TIPO_VISITA_LABEL[rdo.tipo_visita] ?? rdo.tipo_visita} />
           <Badge kind="cond" value={rdo.condicao_local} label={CONDICAO_LABEL[rdo.condicao_local] ?? rdo.condicao_local} />
-          {rdo.supervisor && (
-            <Text style={[styles.badge, { backgroundColor: COLORS.taupeLight, color: COLORS.black }]}>
-              {rdo.supervisor.nome.toUpperCase()}
-            </Text>
-          )}
           {!rdo.finalizado && (
             <Text style={[styles.badge, { backgroundColor: "#E6E4DF", color: COLORS.muted }]}>
               RASCUNHO
             </Text>
           )}
         </View>
+        <Text style={styles.rdoResponsavel}>
+          RESPONSÁVEL: {rdo.supervisor?.nome ?? "—"}
+        </Text>
       </View>
 
       {rdo.registros.trim() !== "" && (
@@ -300,7 +313,7 @@ export function RdoBloco({ rdo, fotosCache, variant = "completo" }: RdoBlocoProp
       {grupos.map((g) => {
         const obs = (rdo.observacoes_ambiente.find((o) => o.ambiente_id === g.id)?.texto ?? "").trim();
         return (
-          <View key={g.id} wrap={variant !== "detalhado"}>
+          <View key={g.id} style={styles.ambienteBloco} wrap={variant !== "detalhado"}>
             <View style={styles.ambienteHeader}>
               <Text style={styles.ambienteTitle}>Ambiente: {g.nome}</Text>
             </View>
@@ -384,7 +397,7 @@ export function RdoBloco({ rdo, fotosCache, variant = "completo" }: RdoBlocoProp
       })}
 
       {fotosSemAmbiente.length > 0 && (
-        <View>
+        <View style={styles.ambienteBloco}>
           <View style={styles.ambienteHeader}>
             <Text style={styles.ambienteTitle}>Fotos sem ambiente</Text>
           </View>
@@ -471,7 +484,6 @@ export function DocumentoPdf({
     <Document>
       <Page size="A4" style={styles.page}>
         <Capa obra={obra} rdos={rdos} escopo={escopo} rdoUnico={rdoUnico} logoDataUrl={logoDataUrl} />
-        <RodapePagina obra={obra} />
       </Page>
       {variant === "detalhado" ? (
         lista.map((rdo) => (
@@ -483,7 +495,7 @@ export function DocumentoPdf({
       ) : (
         <Page size="A4" style={styles.page}>
           {lista.map((rdo, i) => (
-            <View key={rdo.id} break={i > 0}>
+            <View key={rdo.id} style={i > 0 ? { marginTop: 24 } : undefined} wrap>
               <RdoBloco rdo={rdo} fotosCache={fotosCache} variant={variant} />
             </View>
           ))}
