@@ -569,33 +569,75 @@ function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
           </section>
         )}
 
-        {rdo.fotos.length > 0 && (
-          <section>
-            <SectionLabel>Fotos</SectionLabel>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {rdo.fotos.map((f, idx) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setLightboxIdx(idx)}
-                  className="group relative block aspect-square overflow-hidden rounded-[2px] border border-nue-taupe bg-nue-taupe"
-                >
-                  <img
-                    src={f.url}
-                    alt={f.legenda || "Foto do RDO"}
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
-                  {f.legenda && (
-                    <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-left text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
-                      {f.legenda}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+        {rdo.fotos.length > 0 && (() => {
+          const grupos = new Map<string, typeof rdo.fotos>();
+          for (const f of rdo.fotos) {
+            const k = f.ambiente ?? "";
+            const arr = grupos.get(k) ?? [];
+            arr.push(f);
+            grupos.set(k, arr);
+          }
+          const nomesComFoto = Array.from(grupos.keys()).filter((n) => n !== "");
+          nomesComFoto.sort((a, b) => a.localeCompare(b, "pt-BR"));
+          const ordemNomes: string[] = [...nomesComFoto];
+          if (grupos.has("")) ordemNomes.push("");
+
+          let cursor = 0;
+          return (
+            <section>
+              <SectionLabel>Fotos</SectionLabel>
+              <div className="space-y-3">
+                {ordemNomes.map((nome) => {
+                  const grupo = grupos.get(nome) ?? [];
+                  const baseIdx = cursor;
+                  cursor += grupo.length;
+                  return (
+                    <div key={`grp:${nome || "__sem__"}`}>
+                      <div
+                        className="mb-1 text-nue-graphite"
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 11,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {nome || "Fotos sem ambiente"}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                        {grupo.map((f, j) => {
+                          const idxOriginal = rdo.fotos.findIndex((x) => x.id === f.id);
+                          void baseIdx;
+                          void j;
+                          return (
+                            <button
+                              key={f.id}
+                              type="button"
+                              onClick={() => setLightboxIdx(idxOriginal)}
+                              className="group relative block aspect-square overflow-hidden rounded-[2px] border border-nue-taupe bg-nue-taupe"
+                            >
+                              <img
+                                src={f.url}
+                                alt={f.legenda || "Foto do RDO"}
+                                loading="lazy"
+                                className="h-full w-full object-cover"
+                              />
+                              {f.legenda && (
+                                <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-left text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                  {f.legenda}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
       </div>
 
       {/* Rodapé com ações */}
