@@ -655,61 +655,7 @@ function Cabecalho({
   );
 }
 
-function ImprimirDropdown() {
-  const [aberto, setAberto] = useState(false);
-  const opcoes = [
-    "Exportar PDF",
-    "Exportar Excel",
-    "Exportar fotos (.zip)",
-    "Compartilhar link",
-  ];
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setAberto((a) => !a)}
-        className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
-      >
-        <Printer className="h-4 w-4" />
-        Imprimir
-        <ChevronDown className="h-3.5 w-3.5" />
-      </button>
-      {aberto && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setAberto(false)}
-            aria-hidden
-          />
-          <div className="absolute right-0 top-full z-20 mt-1 min-w-[220px] rounded-sm border border-nue-taupe bg-white shadow-md">
-            <ul className="py-1">
-              {opcoes.map((label) => (
-                <li key={label}>
-                  <button
-                    type="button"
-                    disabled
-                    className="flex w-full cursor-not-allowed items-center justify-between gap-2 px-3 py-2 text-left text-sm text-nue-graphite/60"
-                  >
-                    <span>{label}</span>
-                    <span
-                      className="text-[10px] uppercase"
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        letterSpacing: "0.06em",
-                      }}
-                    >
-                      Em breve
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+/* ImprimirDropdown removido — substituído por <ExportarMenu /> */
 
 /* ------------------------- Blocos ------------------------- */
 
