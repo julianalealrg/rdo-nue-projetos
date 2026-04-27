@@ -407,6 +407,21 @@ export function FormularioRdo(props: Props) {
 
   /* -------- Render -------- */
 
+  const camposFaltantesIdentificacao = useMemo(() => {
+    const faltantes: string[] = [];
+    if (!form.data) faltantes.push("data");
+    if (!form.hora_chegada) faltantes.push("hora de chegada");
+    if (!props.obra.supervisor) faltantes.push("responsável pelo RDO");
+    if (!form.tipo_visita) faltantes.push("tipo de visita");
+    if (!form.condicao_local) faltantes.push("condição do local");
+    return faltantes;
+  }, [form.data, form.hora_chegada, form.tipo_visita, form.condicao_local, props.obra.supervisor]);
+
+  const mensagemBloqueio =
+    camposFaltantesIdentificacao.length > 0
+      ? `Preencha os campos obrigatórios da identificação para liberar esta seção: ${camposFaltantesIdentificacao.join(", ")}.`
+      : "Salvando identificação… aguarde para liberar esta seção.";
+
   return (
     <div className="pb-24">
       <CabecalhoForm
@@ -443,16 +458,6 @@ export function FormularioRdo(props: Props) {
             }}
             onCommit={agendarSaveImediato}
           />
-          <SecaoFotos
-            rdoId={rdoId}
-            obraId={props.obra.id}
-            fotos={fotos}
-            setFotos={setFotos}
-            onSavingStart={marcarSalvando}
-            onSavingDone={marcarSalvo}
-            onSavingError={marcarErro}
-            agendarPersistirOrdem={agendarPersistirOrdem}
-          />
         </div>
 
         {/* Coluna direita (40%) */}
@@ -467,6 +472,17 @@ export function FormularioRdo(props: Props) {
             itens={form.pontos_atencao}
             onChange={(v) => atualizarCampo("pontos_atencao", v)}
             onCommit={agendarSaveImediato}
+          />
+          <SecaoFotos
+            rdoId={rdoId}
+            obraId={props.obra.id}
+            fotos={fotos}
+            setFotos={setFotos}
+            onSavingStart={marcarSalvando}
+            onSavingDone={marcarSalvo}
+            onSavingError={marcarErro}
+            agendarPersistirOrdem={agendarPersistirOrdem}
+            mensagemBloqueio={mensagemBloqueio}
           />
           <SecaoAssinatura
             ref={secaoAssinaturaRef}
@@ -484,6 +500,7 @@ export function FormularioRdo(props: Props) {
             sigPadRef={sigPadRef}
             sigDirtyRef={sigDirtyRef}
             onDirty={() => setDirty(true)}
+            mensagemBloqueio={mensagemBloqueio}
           />
         </div>
       </div>
@@ -1344,6 +1361,7 @@ function SecaoFotos({
   onSavingDone,
   onSavingError,
   agendarPersistirOrdem,
+  mensagemBloqueio,
 }: {
   rdoId: string | null;
   obraId: string;
@@ -1353,6 +1371,7 @@ function SecaoFotos({
   onSavingDone: () => void;
   onSavingError: (msg: string) => void;
   agendarPersistirOrdem: (lista: RdoFoto[]) => void;
+  mensagemBloqueio: string;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploads, setUploads] = useState<{ id: string; nome: string; status: "uploading" | "erro"; progresso: number; erro?: string; file?: File }[]>([]);
@@ -1530,7 +1549,7 @@ function SecaoFotos({
               className="text-nue-graphite"
               style={{ fontFamily: "var(--font-sans)", fontSize: 13 }}
             >
-              Preencha a identificação para começar a anexar fotos e assinatura
+              {mensagemBloqueio}
             </p>
           </div>
         ) : (
@@ -1792,6 +1811,7 @@ function SecaoAssinatura({
   sigPadRef,
   sigDirtyRef,
   onDirty,
+  mensagemBloqueio,
 }: {
   ref: React.RefObject<HTMLDivElement | null>;
   rdoId: string | null;
@@ -1804,6 +1824,7 @@ function SecaoAssinatura({
   sigPadRef: React.MutableRefObject<SignatureCanvas | null>;
   sigDirtyRef: React.MutableRefObject<boolean>;
   onDirty: () => void;
+  mensagemBloqueio: string;
 }) {
   const desabilitado = !rdoId;
   const mostrarCanvas = !assinaturaUrl || substituindo;
@@ -1845,7 +1866,7 @@ function SecaoAssinatura({
                 className="text-nue-graphite"
                 style={{ fontFamily: "var(--font-sans)", fontSize: 13 }}
               >
-                Preencha a identificação para começar a anexar fotos e assinatura
+                {mensagemBloqueio}
               </p>
             </div>
           ) : mostrarCanvas ? (
