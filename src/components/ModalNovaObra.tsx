@@ -115,6 +115,12 @@ export function ModalNovaObra({ open, onClose, supervisores, onCreated }: Props)
         return;
       }
       toast.success(`Obra ${novoId} cadastrada`);
+      try {
+        await criarAmbientesEmLote(novoId, ambientes);
+      } catch (errAmb) {
+        const msg = errAmb instanceof Error ? errAmb.message : "Erro";
+        toast.error(`Obra criada, mas falhou ao salvar ambientes: ${msg}`);
+      }
       onCreated(novoId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
