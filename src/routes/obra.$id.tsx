@@ -171,10 +171,12 @@ function CabecalhoObra({
   obra,
   totalRdos,
   periodo,
+  onGerenciarAmbientes,
 }: {
   obra: ObraComSupervisor;
   totalRdos: number;
   periodo: string;
+  onGerenciarAmbientes: () => void;
 }) {
   return (
     <section
