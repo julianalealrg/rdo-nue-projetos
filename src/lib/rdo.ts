@@ -54,17 +54,31 @@ export class ObraNaoEncontradaError extends Error {
 /* ---------------- Fetchers ---------------- */
 
 export async function fetchObra(id: string): Promise<ObraComSupervisor> {
-  const { data, error } = await supabase
-    .from("obras")
-    .select("*, supervisor:supervisores(id, nome, iniciais)")
-    .eq("id", id)
-    .maybeSingle();
+  const [obraRes, ambRes] = await Promise.all([
+    supabase
+      .from("obras")
+      .select("*, supervisor:supervisores(id, nome, iniciais)")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("obra_ambientes")
+      .select("*")
+      .eq("obra_id", id)
+      .eq("ativo", true)
+      .order("ordem", { ascending: true })
+      .order("created_at", { ascending: true }),
+  ]);
 
-  if (error) throw new Error(`Falha ao carregar obra: ${error.message}`);
-  if (!data) throw new ObraNaoEncontradaError(id);
+  if (obraRes.error) throw new Error(`Falha ao carregar obra: ${obraRes.error.message}`);
+  if (!obraRes.data) throw new ObraNaoEncontradaError(id);
+  if (ambRes.error) throw new Error(`Falha ao carregar ambientes: ${ambRes.error.message}`);
 
-  const obraRaw = data as unknown as ObraComSupervisor;
-  return { ...obraRaw, supervisor: obraRaw.supervisor ?? null };
+  const obraRaw = obraRes.data as unknown as ObraComSupervisor;
+  return {
+    ...obraRaw,
+    supervisor: obraRaw.supervisor ?? null,
+    ambientes: ambRes.data ?? [],
+  };
 }
 
 export type RdoComObra = {
@@ -78,7 +92,7 @@ export async function fetchRdoCompleto(id: string): Promise<RdoComObra> {
     .select(
       `*,
        supervisor:supervisores(id, nome, iniciais),
-       fotos:rdo_fotos(*),
+       fotos:rdo_fotos(*, ambiente:obra_ambientes(id, nome, ordem, ativo)),
        pendencias:rdo_pendencias(*),
        pontos_atencao:rdo_pontos_atencao(*),
        equipe_nue:rdo_equipe_nue(*),
@@ -97,6 +111,15 @@ export async function fetchRdoCompleto(id: string): Promise<RdoComObra> {
     | null;
 
   if (!obraRaw) throw new Error("RDO sem obra associada");
+
+  const { data: ambientesData, error: ambErr } = await supabase
+    .from("obra_ambientes")
+    .select("*")
+    .eq("obra_id", obraRaw.id)
+    .eq("ativo", true)
+    .order("ordem", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (ambErr) throw new Error(`Falha ao carregar ambientes: ${ambErr.message}`);
 
   const rdo: RdoCompleto = {
     ...(data as unknown as Rdo),
@@ -119,6 +142,7 @@ export async function fetchRdoCompleto(id: string): Promise<RdoComObra> {
   const obra: ObraComSupervisor = {
     ...(obraRaw as ObraComSupervisor),
     supervisor: obraRaw.supervisor ?? null,
+    ambientes: ambientesData ?? [],
   };
 
   return { rdo, obra };

@@ -31,6 +31,8 @@ export function Lightbox({
   const foto = fotos[indice];
   if (!foto) return null;
 
+  const nomeAmbiente = foto.ambiente?.nome ?? (foto.ambiente_id ? "" : "Sem ambiente");
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4"
@@ -81,17 +83,17 @@ export function Lightbox({
           alt={foto.legenda || `Foto ${indice + 1}`}
           className="max-h-[80vh] max-w-full rounded-sm object-contain"
         />
-        {(foto.legenda || foto.ambiente || total > 1) && (
+        {(foto.legenda || nomeAmbiente || total > 1) && (
           <figcaption
             className="mt-3 text-center text-sm text-white/90"
             style={{ fontFamily: "var(--font-sans)" }}
           >
-            {foto.ambiente && (
+            {nomeAmbiente && (
               <div
                 className="mb-1 text-white/80"
                 style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }}
               >
-                {foto.ambiente}
+                {nomeAmbiente}
               </div>
             )}
             {foto.legenda}

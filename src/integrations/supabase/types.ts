@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      obra_ambientes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          obra_id: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          obra_id: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          obra_id?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obra_ambientes_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       obras: {
         Row: {
           created_at: string
@@ -92,7 +127,7 @@ export type Database = {
       }
       rdo_fotos: {
         Row: {
-          ambiente: string
+          ambiente_id: string | null
           created_at: string
           id: string
           legenda: string
@@ -101,7 +136,7 @@ export type Database = {
           url: string
         }
         Insert: {
-          ambiente?: string
+          ambiente_id?: string | null
           created_at?: string
           id?: string
           legenda?: string
@@ -110,7 +145,7 @@ export type Database = {
           url: string
         }
         Update: {
-          ambiente?: string
+          ambiente_id?: string | null
           created_at?: string
           id?: string
           legenda?: string
@@ -119,6 +154,13 @@ export type Database = {
           url?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rdo_fotos_ambiente_id_fkey"
+            columns: ["ambiente_id"]
+            isOneToOne: false
+            referencedRelation: "obra_ambientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rdo_fotos_rdo_id_fkey"
             columns: ["rdo_id"]

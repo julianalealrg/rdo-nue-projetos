@@ -570,29 +570,36 @@ function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
         )}
 
         {rdo.fotos.length > 0 && (() => {
-          const grupos = new Map<string, typeof rdo.fotos>();
+          // Agrupa por ambiente_id (null vai pro grupo "Fotos sem ambiente")
+          const grupos = new Map<string | null, typeof rdo.fotos>();
           for (const f of rdo.fotos) {
-            const k = f.ambiente ?? "";
+            const k = f.ambiente_id ?? null;
             const arr = grupos.get(k) ?? [];
             arr.push(f);
             grupos.set(k, arr);
           }
-          const nomesComFoto = Array.from(grupos.keys()).filter((n) => n !== "");
-          nomesComFoto.sort((a, b) => a.localeCompare(b, "pt-BR"));
-          const ordemNomes: string[] = [...nomesComFoto];
-          if (grupos.has("")) ordemNomes.push("");
+          // Ordena ids por foto.ambiente.ordem (asc); null vai pro fim
+          const idsComFoto = Array.from(grupos.keys()).filter((k): k is string => k !== null);
+          idsComFoto.sort((a, b) => {
+            const fa = (grupos.get(a) ?? [])[0]?.ambiente?.ordem ?? 0;
+            const fb = (grupos.get(b) ?? [])[0]?.ambiente?.ordem ?? 0;
+            return fa - fb;
+          });
+          const ordemKeys: (string | null)[] = [...idsComFoto];
+          if (grupos.has(null)) ordemKeys.push(null);
 
-          let cursor = 0;
           return (
             <section>
               <SectionLabel>Fotos</SectionLabel>
               <div className="space-y-3">
-                {ordemNomes.map((nome) => {
-                  const grupo = grupos.get(nome) ?? [];
-                  const baseIdx = cursor;
-                  cursor += grupo.length;
+                {ordemKeys.map((k) => {
+                  const grupo = grupos.get(k) ?? [];
+                  const nome =
+                    k === null
+                      ? "Fotos sem ambiente"
+                      : grupo[0]?.ambiente?.nome ?? "Sem ambiente";
                   return (
-                    <div key={`grp:${nome || "__sem__"}`}>
+                    <div key={`grp:${k ?? "__sem__"}`}>
                       <div
                         className="mb-1 text-nue-graphite"
                         style={{
@@ -602,13 +609,11 @@ function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
                           textTransform: "uppercase",
                         }}
                       >
-                        {nome || "Fotos sem ambiente"}
+                        {nome}
                       </div>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                        {grupo.map((f, j) => {
+                        {grupo.map((f) => {
                           const idxOriginal = rdo.fotos.findIndex((x) => x.id === f.id);
-                          void baseIdx;
-                          void j;
                           return (
                             <button
                               key={f.id}
