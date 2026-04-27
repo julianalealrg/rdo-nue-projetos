@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
@@ -761,5 +761,3 @@ function SkeletonCard() {
   );
 }
 
-// Suprime warning de import não usado quando nenhum link de retorno é renderizado.
-void useRouter;
