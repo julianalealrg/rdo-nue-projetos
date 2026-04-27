@@ -248,6 +248,68 @@ export function ModalNovaObra({ open, onClose, supervisores, onCreated }: Props)
                 </p>
               )}
             </div>
+
+            <div>
+              <label
+                className="mb-1 block text-xs font-medium text-nue-graphite uppercase tracking-wider"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                Ambientes (opcional)
+              </label>
+              <p className="mb-2 text-xs text-nue-graphite">
+                Cadastre os ambientes que serão trabalhados nesta obra. Você pode
+                adicionar mais depois.
+              </p>
+              {ambientes.length > 0 && (
+                <div className="space-y-2">
+                  {ambientes.map((nome, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        ref={(el) => {
+                          ambienteRefs.current[idx] = el;
+                        }}
+                        type="text"
+                        value={nome}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setAmbientes((prev) => {
+                            const novo = [...prev];
+                            novo[idx] = v;
+                            return novo;
+                          });
+                        }}
+                        disabled={enviando}
+                        placeholder="Ex.: Cozinha"
+                        className="h-9 flex-1 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-nue-black focus:border-nue-graphite focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        disabled={enviando}
+                        onClick={() => {
+                          setAmbientes((prev) => prev.filter((_, i) => i !== idx));
+                        }}
+                        className="rounded-sm p-1.5 text-nue-graphite hover:bg-[#F1DDD8] hover:text-[#8C3A2E] disabled:opacity-40"
+                        aria-label="Remover ambiente"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                disabled={enviando}
+                onClick={() => {
+                  focarUltimoAmbienteRef.current = true;
+                  setAmbientes((prev) => [...prev, ""]);
+                }}
+                className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-sm border border-nue-taupe bg-white px-3 text-xs text-nue-black hover:bg-nue-taupe/30 disabled:opacity-40"
+              >
+                <Plus className="h-3 w-3" />
+                Adicionar ambiente
+              </button>
+            </div>
           </div>
 
           <footer className="mt-6 flex items-center justify-end gap-2 border-t border-nue-taupe pt-4 -mx-5 px-5">
