@@ -40,6 +40,12 @@ import {
   uploadFoto,
 } from "@/lib/fotos";
 import { criarAmbiente, fetchAmbientesObra } from "@/lib/ambientes";
+import {
+  removerAmbienteDoRdo,
+  removerObservacaoAmbiente,
+  upsertObservacaoAmbiente,
+} from "@/lib/rdo";
+import type { RdoObservacaoAmbiente } from "@/lib/diario";
 import { Lightbox } from "@/components/Lightbox";
 
 
