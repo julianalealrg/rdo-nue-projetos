@@ -136,6 +136,7 @@ function DiarioObraView({
     <div className="space-y-4">
       <CabecalhoObra
         obra={obra}
+        rdos={rdos}
         totalRdos={rdos.length}
         periodo={periodo}
         onGerenciarAmbientes={() => setGerenciarAmbientesAberto(true)}
@@ -170,11 +171,13 @@ function DiarioObraView({
 
 function CabecalhoObra({
   obra,
+  rdos,
   totalRdos,
   periodo,
   onGerenciarAmbientes,
 }: {
   obra: ObraComSupervisor;
+  rdos: RdoCompleto[];
   totalRdos: number;
   periodo: string;
   onGerenciarAmbientes: () => void;
@@ -213,7 +216,10 @@ function CabecalhoObra({
             <Settings className="h-4 w-4" />
             Gerenciar ambientes
           </button>
-          <ExportarDropdown />
+          <ExportarMenu
+            escopo={{ tipo: "diario", obra, rdos }}
+            rotulo="Exportar diário"
+          />
         </div>
       </div>
 
