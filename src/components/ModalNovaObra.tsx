@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { gerarProximoIdObra } from "@/lib/ids";
+import { criarAmbientesEmLote } from "@/lib/ambientes";
 import type { Supervisor } from "@/lib/painel";
 
 const obraSchema = z.object({
@@ -31,16 +32,20 @@ export function ModalNovaObra({ open, onClose, supervisores, onCreated }: Props)
   const [nomeCliente, setNomeCliente] = useState("");
   const [endereco, setEndereco] = useState("");
   const [supervisorId, setSupervisorId] = useState<string>("");
+  const [ambientes, setAmbientes] = useState<string[]>([]);
   const [erros, setErros] = useState<{ nome_cliente?: string; endereco?: string }>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const ambienteRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const focarUltimoAmbienteRef = useRef(false);
 
   useEffect(() => {
     if (open) {
       setNomeCliente("");
       setEndereco("");
       setSupervisorId("");
+      setAmbientes([]);
       setErros({});
       setErroGeral(null);
       setEnviando(false);
@@ -49,6 +54,14 @@ export function ModalNovaObra({ open, onClose, supervisores, onCreated }: Props)
       return () => clearTimeout(t);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (focarUltimoAmbienteRef.current && ambientes.length > 0) {
+      const ultimo = ambienteRefs.current[ambientes.length - 1];
+      ultimo?.focus();
+      focarUltimoAmbienteRef.current = false;
+    }
+  }, [ambientes.length]);
 
   // Fechar com ESC
   useEffect(() => {
@@ -102,6 +115,12 @@ export function ModalNovaObra({ open, onClose, supervisores, onCreated }: Props)
         return;
       }
       toast.success(`Obra ${novoId} cadastrada`);
+      try {
+        await criarAmbientesEmLote(novoId, ambientes);
+      } catch (errAmb) {
+        const msg = errAmb instanceof Error ? errAmb.message : "Erro";
+        toast.error(`Obra criada, mas falhou ao salvar ambientes: ${msg}`);
+      }
       onCreated(novoId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
@@ -228,6 +247,68 @@ export function ModalNovaObra({ open, onClose, supervisores, onCreated }: Props)
                   Cadastre supervisores em Configurações para atribuir a obra a alguém
                 </p>
               )}
+            </div>
+
+            <div>
+              <label
+                className="mb-1 block text-xs font-medium text-nue-graphite uppercase tracking-wider"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                Ambientes (opcional)
+              </label>
+              <p className="mb-2 text-xs text-nue-graphite">
+                Cadastre os ambientes que serão trabalhados nesta obra. Você pode
+                adicionar mais depois.
+              </p>
+              {ambientes.length > 0 && (
+                <div className="space-y-2">
+                  {ambientes.map((nome, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        ref={(el) => {
+                          ambienteRefs.current[idx] = el;
+                        }}
+                        type="text"
+                        value={nome}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setAmbientes((prev) => {
+                            const novo = [...prev];
+                            novo[idx] = v;
+                            return novo;
+                          });
+                        }}
+                        disabled={enviando}
+                        placeholder="Ex.: Cozinha"
+                        className="h-9 flex-1 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-nue-black focus:border-nue-graphite focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        disabled={enviando}
+                        onClick={() => {
+                          setAmbientes((prev) => prev.filter((_, i) => i !== idx));
+                        }}
+                        className="rounded-sm p-1.5 text-nue-graphite hover:bg-[#F1DDD8] hover:text-[#8C3A2E] disabled:opacity-40"
+                        aria-label="Remover ambiente"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                disabled={enviando}
+                onClick={() => {
+                  focarUltimoAmbienteRef.current = true;
+                  setAmbientes((prev) => [...prev, ""]);
+                }}
+                className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-sm border border-nue-taupe bg-white px-3 text-xs text-nue-black hover:bg-nue-taupe/30 disabled:opacity-40"
+              >
+                <Plus className="h-3 w-3" />
+                Adicionar ambiente
+              </button>
             </div>
           </div>
 

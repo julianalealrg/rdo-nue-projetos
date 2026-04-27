@@ -14,6 +14,7 @@ import {
   Pencil,
   Printer,
   ArrowLeft,
+  Settings,
 } from "lucide-react";
 import {
   fetchDiarioObra,
@@ -31,6 +32,7 @@ import {
 } from "@/lib/datas";
 import { StatusBadge, SupervisorAvatar } from "@/components/ObraBadges";
 import { Lightbox } from "@/components/Lightbox";
+import { ModalGerenciarAmbientes } from "@/components/ModalGerenciarAmbientes";
 
 export const Route = createFileRoute("/obra/$id")({
   component: DiarioObra,
@@ -109,6 +111,7 @@ function DiarioObraView({
   rdos: RdoCompleto[];
 }) {
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const [gerenciarAmbientesAberto, setGerenciarAmbientesAberto] = useState(false);
 
   const periodo = useMemo(() => {
     if (rdos.length === 0) return "—";
@@ -130,7 +133,12 @@ function DiarioObraView({
 
   return (
     <div className="space-y-4">
-      <CabecalhoObra obra={obra} totalRdos={rdos.length} periodo={periodo} />
+      <CabecalhoObra
+        obra={obra}
+        totalRdos={rdos.length}
+        periodo={periodo}
+        onGerenciarAmbientes={() => setGerenciarAmbientesAberto(true)}
+      />
 
       {rdos.length === 0 ? (
         <EmptyStateRdos obraId={obra.id} />
@@ -146,6 +154,13 @@ function DiarioObraView({
           ))}
         </div>
       )}
+
+      <ModalGerenciarAmbientes
+        open={gerenciarAmbientesAberto}
+        onClose={() => setGerenciarAmbientesAberto(false)}
+        obraId={obra.id}
+        nomeCliente={obra.nome_cliente}
+      />
     </div>
   );
 }
@@ -156,10 +171,12 @@ function CabecalhoObra({
   obra,
   totalRdos,
   periodo,
+  onGerenciarAmbientes,
 }: {
   obra: ObraComSupervisor;
   totalRdos: number;
   periodo: string;
+  onGerenciarAmbientes: () => void;
 }) {
   return (
     <section
@@ -187,6 +204,14 @@ function CabecalhoObra({
             <Plus className="h-4 w-4" />
             Novo RDO
           </Link>
+          <button
+            type="button"
+            onClick={onGerenciarAmbientes}
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
+          >
+            <Settings className="h-4 w-4" />
+            Gerenciar ambientes
+          </button>
           <ExportarDropdown />
         </div>
       </div>
