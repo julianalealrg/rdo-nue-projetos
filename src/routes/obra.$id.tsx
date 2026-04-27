@@ -111,6 +111,7 @@ function DiarioObraView({
   rdos: RdoCompleto[];
 }) {
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const [gerenciarAmbientesAberto, setGerenciarAmbientesAberto] = useState(false);
 
   const periodo = useMemo(() => {
     if (rdos.length === 0) return "—";
