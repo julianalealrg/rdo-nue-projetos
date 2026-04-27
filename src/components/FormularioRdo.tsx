@@ -1,0 +1,1191 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, ChevronUp, Plus, Trash2, X } from "lucide-react";
+import { z } from "zod";
+import { toast } from "sonner";
+import { hojeRecife, horaAgoraRecife, horaAgoraRecifeFormatada } from "@/lib/datas";
+import type { ObraComSupervisor, RdoCompleto, CondicaoLocal, TipoVisita, Prioridade } from "@/lib/diario";
+import {
+  atualizarRdoCampos,
+  criarRdoInicial,
+  criarVersaoSnapshot,
+  rdoParaForm,
+  sincronizarFilhos,
+  type FormRdoState,
+  type EquipeItem,
+  type TerceiroItem,
+  type PendenciaItem,
+  type PontoAtencaoItem,
+} from "@/lib/rdo";
+
+/* ---------------- Tipos ---------------- */
+
+type Props =
+  | { modo: "criar"; obra: ObraComSupervisor }
+  | { modo: "editar"; obra: ObraComSupervisor; rdo: RdoCompleto };
+
+type SaveStatus =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "saved"; hora: string }
+  | { kind: "error"; msg: string };
+
+type Erros = Partial<{
+  data: string;
+  hora_chegada: string;
+  tipo_visita: string;
+  condicao_local: string;
+  registros: string;
+}>;
+
+/* ---------------- Estado inicial ---------------- */
+
+function estadoInicialCriar(): FormRdoState {
+  return {
+    data: hojeRecife(),
+    hora_chegada: horaAgoraRecife(),
+    hora_saida: "",
+    tipo_visita: "",
+    condicao_local: "",
+    registros: "",
+    proximos_passos: "",
+    equipe_nue: [],
+    terceiros: [],
+    pendencias: [],
+    pontos_atencao: [],
+  };
+}
+
+/* ---------------- Validação ---------------- */
+
+const schemaFinalizar = z.object({
+  data: z.string().min(1, "Informe a data"),
+  hora_chegada: z.string().min(1, "Informe a hora de chegada"),
+  tipo_visita: z.enum(["medicao", "supervisao_montagem"], {
+    message: "Selecione o tipo de visita",
+  }),
+  condicao_local: z.enum(["praticavel", "parcialmente_praticavel", "impraticavel"], {
+    message: "Selecione a condição do local",
+  }),
+  registros: z.string().trim().min(1, "Descreva os registros do dia"),
+});
+
+/* ---------------- Componente ---------------- */
+
+export function FormularioRdo(props: Props) {
+  const navigate = useNavigate();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const [form, setForm] = useState<FormRdoState>(() =>
+    props.modo === "editar" ? rdoParaForm(props.rdo) : estadoInicialCriar(),
+  );
+  const [rdoId, setRdoId] = useState<string | null>(
+    props.modo === "editar" ? props.rdo.id : null,
+  );
+  const [estavaFinalizado] = useState<boolean>(
+    props.modo === "editar" ? props.rdo.finalizado : false,
+  );
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>({ kind: "idle" });
+  const [erros, setErros] = useState<Erros>({});
+  const [dirty, setDirty] = useState(false);
+  const [confirmandoSair, setConfirmandoSair] = useState(false);
+  const [finalizando, setFinalizando] = useState(false);
+
+  // Refs para controlar concorrência e debounce
+  const ultimoSavePromise = useRef<Promise<void> | null>(null);
+  const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const refsCampos = useRef<Map<keyof Erros, HTMLElement | null>>(new Map());
+  const formRef = useRef(form);
+  formRef.current = form;
+  const rdoIdRef = useRef(rdoId);
+  rdoIdRef.current = rdoId;
+
+  /* -------- Helpers de mutação -------- */
+
+  const podeIniciarRascunho = useCallback((f: FormRdoState) => {
+    return (
+      f.data.length > 0 &&
+      f.hora_chegada.length > 0 &&
+      f.tipo_visita.length > 0 &&
+      f.condicao_local.length > 0
+    );
+  }, []);
+
+  const persistir = useCallback(
+    async (opcoes?: { finalizado?: boolean }): Promise<string | null> => {
+      const f = formRef.current;
+      if (!podeIniciarRascunho(f)) return rdoIdRef.current;
+
+      setSaveStatus({ kind: "saving" });
+      try {
+        let id = rdoIdRef.current;
+
+        // Snapshot ANTES de mudar (somente quando editando finalizado)
+        if (id && estavaFinalizado) {
+          await criarVersaoSnapshot({ rdo_id: id });
+        }
+
+        if (!id) {
+          id = await criarRdoInicial({
+            obra_id: props.obra.id,
+            supervisor_id: props.obra.supervisor_id,
+            form: f,
+          });
+          setRdoId(id);
+          rdoIdRef.current = id;
+        } else {
+          await atualizarRdoCampos({ id, form: f, finalizado: opcoes?.finalizado });
+        }
+
+        await sincronizarFilhos({
+          rdo_id: id,
+          equipe_nue: f.equipe_nue,
+          terceiros: f.terceiros,
+          pendencias: f.pendencias,
+          pontos_atencao: f.pontos_atencao,
+        });
+
+        // Marcar finalizado quando aplicável e ainda não chamamos o update acima
+        if (opcoes?.finalizado && rdoIdRef.current && rdoIdRef.current === id) {
+          // já tratado pelo update acima quando id existia; quando criou agora, força:
+          if (!estavaFinalizado) {
+            await atualizarRdoCampos({ id, form: f, finalizado: true });
+          }
+        }
+
+        setSaveStatus({ kind: "saved", hora: horaAgoraRecifeFormatada() });
+        setDirty(false);
+        queryClient.invalidateQueries({ queryKey: ["diario-obra", props.obra.id] });
+        router.invalidate();
+        return id;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Erro desconhecido";
+        setSaveStatus({ kind: "error", msg });
+        return null;
+      }
+    },
+    [props.obra.id, props.obra.supervisor_id, podeIniciarRascunho, estavaFinalizado, queryClient, router],
+  );
+
+  // Auto-save imediato (com proteção contra concorrência)
+  const agendarSaveImediato = useCallback(() => {
+    if (!podeIniciarRascunho(formRef.current)) return;
+    const prev = ultimoSavePromise.current ?? Promise.resolve();
+    const next = prev.then(() => persistir().then(() => undefined));
+    ultimoSavePromise.current = next;
+  }, [persistir, podeIniciarRascunho]);
+
+  // Auto-save com debounce (textareas)
+  const agendarSaveDebounced = useCallback(
+    (chave: string, ms = 800) => {
+      const timers = debounceTimers.current;
+      const t = timers.get(chave);
+      if (t) clearTimeout(t);
+      timers.set(
+        chave,
+        setTimeout(() => {
+          timers.delete(chave);
+          agendarSaveImediato();
+        }, ms),
+      );
+    },
+    [agendarSaveImediato],
+  );
+
+  // Limpa timers ao desmontar
+  useEffect(() => {
+    return () => {
+      for (const t of debounceTimers.current.values()) clearTimeout(t);
+      debounceTimers.current.clear();
+    };
+  }, []);
+
+  // Aviso ao tentar sair com mudanças
+  useEffect(() => {
+    function before(e: BeforeUnloadEvent) {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    }
+    window.addEventListener("beforeunload", before);
+    return () => window.removeEventListener("beforeunload", before);
+  }, [dirty]);
+
+  /* -------- Mutadores de campo -------- */
+
+  function atualizarCampo<K extends keyof FormRdoState>(chave: K, valor: FormRdoState[K]) {
+    setForm((f) => ({ ...f, [chave]: valor }));
+    setDirty(true);
+  }
+
+  /* -------- Handlers de saída -------- */
+
+  function tentarSair() {
+    if (dirty || saveStatus.kind === "saving") {
+      setConfirmandoSair(true);
+      return;
+    }
+    navigate({ to: "/obra/$id", params: { id: props.obra.id } });
+  }
+
+  async function salvarRascunhoESair() {
+    if (rdoIdRef.current || podeIniciarRascunho(formRef.current)) {
+      const id = await persistir();
+      if (id) {
+        toast.success("Rascunho salvo");
+        navigate({ to: "/obra/$id", params: { id: props.obra.id } });
+        return;
+      }
+      // se falhou, mantém na tela
+      return;
+    }
+    // sem nada para salvar — só sair
+    navigate({ to: "/obra/$id", params: { id: props.obra.id } });
+  }
+
+  async function finalizar() {
+    if (finalizando) return;
+    const f = formRef.current;
+    const parsed = schemaFinalizar.safeParse({
+      data: f.data,
+      hora_chegada: f.hora_chegada,
+      tipo_visita: f.tipo_visita || undefined,
+      condicao_local: f.condicao_local || undefined,
+      registros: f.registros,
+    });
+    if (!parsed.success) {
+      const novosErros: Erros = {};
+      for (const issue of parsed.error.issues) {
+        const path = issue.path[0];
+        if (path === "data") novosErros.data = issue.message;
+        else if (path === "hora_chegada") novosErros.hora_chegada = issue.message;
+        else if (path === "tipo_visita") novosErros.tipo_visita = issue.message;
+        else if (path === "condicao_local") novosErros.condicao_local = issue.message;
+        else if (path === "registros") novosErros.registros = issue.message;
+      }
+      setErros(novosErros);
+      // Scroll até o primeiro campo com erro
+      const ordem: (keyof Erros)[] = ["data", "hora_chegada", "tipo_visita", "condicao_local", "registros"];
+      const primeiro = ordem.find((k) => novosErros[k]);
+      if (primeiro) {
+        const el = refsCampos.current.get(primeiro);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (el && "focus" in el) (el as HTMLElement).focus({ preventScroll: true });
+      }
+      return;
+    }
+    setErros({});
+    setFinalizando(true);
+    const id = await persistir({ finalizado: true });
+    setFinalizando(false);
+    if (id) {
+      toast.success("RDO finalizado");
+      navigate({ to: "/rdo/$id", params: { id } });
+    }
+  }
+
+  /* -------- Render -------- */
+
+  return (
+    <div className="pb-24">
+      <CabecalhoForm
+        modo={props.modo}
+        obra={props.obra}
+        rdoId={rdoId}
+        saveStatus={saveStatus}
+        onCancelar={tentarSair}
+        onRetry={agendarSaveImediato}
+      />
+
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {/* Coluna esquerda (60%) */}
+        <div className="space-y-4 lg:col-span-3">
+          <SecaoIdentificacao
+            form={form}
+            erros={erros}
+            onChange={atualizarCampo}
+            onCommit={agendarSaveImediato}
+            registrarRef={(k, el) => refsCampos.current.set(k, el)}
+          />
+          <SecaoRegistros
+            form={form}
+            erro={erros.registros}
+            onChange={atualizarCampo}
+            onBlurDebounced={agendarSaveDebounced}
+            onBlurImediato={agendarSaveImediato}
+            registrarRef={(el) => refsCampos.current.set("registros", el)}
+          />
+          <SecaoPendencias
+            itens={form.pendencias}
+            onChange={(novos) => {
+              atualizarCampo("pendencias", novos);
+            }}
+            onCommit={agendarSaveImediato}
+          />
+        </div>
+
+        {/* Coluna direita (40%) */}
+        <div className="space-y-4 lg:col-span-2">
+          <SecaoEquipe
+            form={form}
+            onChangeEquipe={(v) => atualizarCampo("equipe_nue", v)}
+            onChangeTerceiros={(v) => atualizarCampo("terceiros", v)}
+            onCommit={agendarSaveImediato}
+          />
+          <SecaoPontosAtencao
+            itens={form.pontos_atencao}
+            onChange={(v) => atualizarCampo("pontos_atencao", v)}
+            onCommit={agendarSaveImediato}
+          />
+        </div>
+      </div>
+
+      {/* Rodapé fixo */}
+      <RodapeFixo
+        saveStatus={saveStatus}
+        finalizando={finalizando}
+        onSalvarRascunho={salvarRascunhoESair}
+        onFinalizar={finalizar}
+        onRetry={agendarSaveImediato}
+      />
+
+      {confirmandoSair && (
+        <DialogoConfirmar
+          onCancelar={() => setConfirmandoSair(false)}
+          onDescartar={() =>
+            navigate({ to: "/obra/$id", params: { id: props.obra.id } })
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Cabeçalho ---------------- */
+
+function CabecalhoForm({
+  modo,
+  obra,
+  rdoId,
+  saveStatus,
+  onCancelar,
+  onRetry,
+}: {
+  modo: "criar" | "editar";
+  obra: ObraComSupervisor;
+  rdoId: string | null;
+  saveStatus: SaveStatus;
+  onCancelar: () => void;
+  onRetry: () => void;
+}) {
+  const titulo = modo === "criar" ? "Novo RDO" : "Editar RDO";
+  return (
+    <header className="space-y-2">
+      <nav
+        className="flex flex-wrap items-center gap-1 text-[12px] text-nue-graphite"
+        style={{ fontFamily: "var(--font-mono)" }}
+      >
+        <Link to="/" className="hover:text-nue-black hover:underline">
+          Obras
+        </Link>
+        <span>/</span>
+        <Link
+          to="/obra/$id"
+          params={{ id: obra.id }}
+          className="hover:text-nue-black hover:underline"
+        >
+          {obra.id}
+        </Link>
+        <span>/</span>
+        <span className="text-nue-black">{rdoId ?? "Novo RDO"}</span>
+      </nav>
+
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1
+            className="text-nue-black"
+            style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1.15 }}
+          >
+            {titulo}
+          </h1>
+          <p className="text-[14px] text-nue-graphite">
+            <span className="text-nue-black">{obra.nome_cliente}</span>
+            <span className="mx-2 text-nue-graphite/50">·</span>
+            <span>{obra.endereco}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <IndicadorSave saveStatus={saveStatus} onRetry={onRetry} />
+          <button
+            type="button"
+            onClick={onCancelar}
+            className="h-9 rounded-sm border border-nue-taupe bg-white px-4 text-sm text-nue-black transition-colors hover:bg-nue-taupe/40"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function IndicadorSave({
+  saveStatus,
+  onRetry,
+}: {
+  saveStatus: SaveStatus;
+  onRetry: () => void;
+}) {
+  if (saveStatus.kind === "idle") return <span className="text-[11px] text-nue-graphite/50" style={{ fontFamily: "var(--font-mono)" }}>—</span>;
+  if (saveStatus.kind === "saving")
+    return (
+      <span
+        className="text-[11px] italic text-nue-graphite"
+        style={{ fontFamily: "var(--font-mono)" }}
+      >
+        Salvando...
+      </span>
+    );
+  if (saveStatus.kind === "saved")
+    return (
+      <span
+        className="text-[11px] text-nue-graphite"
+        style={{ fontFamily: "var(--font-mono)" }}
+      >
+        Salvo às {saveStatus.hora}
+      </span>
+    );
+  return (
+    <span className="flex items-center gap-2 text-[11px] text-[#8C3A2E]" style={{ fontFamily: "var(--font-mono)" }}>
+      Erro ao salvar
+      <button
+        type="button"
+        onClick={onRetry}
+        className="underline underline-offset-2 hover:text-nue-black"
+      >
+        Tentar novamente
+      </button>
+    </span>
+  );
+}
+
+/* ---------------- Card de seção ---------------- */
+
+function CardSecao({
+  titulo,
+  obrigatorio,
+  defaultOpen = true,
+  fixo = false,
+  children,
+}: {
+  titulo: string;
+  obrigatorio?: boolean;
+  defaultOpen?: boolean;
+  fixo?: boolean;
+  children: React.ReactNode;
+}) {
+  const [aberto, setAberto] = useState(defaultOpen);
+  const open = fixo ? true : aberto;
+  return (
+    <section
+      className="rounded-sm border border-nue-taupe bg-white"
+      style={{ padding: "16px 20px" }}
+    >
+      <header className="flex items-center justify-between">
+        <h2
+          className="flex items-center gap-2 text-nue-black"
+          style={{ fontFamily: "var(--font-display)", fontSize: 17 }}
+        >
+          {titulo}
+          {obrigatorio && (
+            <span
+              className="text-[10px] uppercase text-nue-graphite"
+              style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}
+            >
+              obrigatório
+            </span>
+          )}
+        </h2>
+        {!fixo && (
+          <button
+            type="button"
+            onClick={() => setAberto((a) => !a)}
+            aria-label={open ? "Colapsar" : "Expandir"}
+            className="rounded-sm p-1 text-nue-graphite hover:bg-nue-taupe/40"
+          >
+            {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        )}
+      </header>
+      {open && <div className="mt-4">{children}</div>}
+    </section>
+  );
+}
+
+function Label({
+  htmlFor,
+  children,
+}: {
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-nue-graphite"
+      style={{ fontFamily: "var(--font-mono)" }}
+    >
+      {children}
+    </label>
+  );
+}
+
+function ErroCampo({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="mt-1 text-xs text-[#8C3A2E]">{msg}</p>;
+}
+
+function inputCls(temErro: boolean) {
+  return `h-10 w-full rounded-sm border bg-white px-3 text-sm text-nue-black focus:outline-none focus:border-nue-graphite ${
+    temErro ? "border-[#8C3A2E]" : "border-nue-taupe"
+  }`;
+}
+
+/* ---------------- Seção 1 — Identificação ---------------- */
+
+function SecaoIdentificacao({
+  form,
+  erros,
+  onChange,
+  onCommit,
+  registrarRef,
+}: {
+  form: FormRdoState;
+  erros: Erros;
+  onChange: <K extends keyof FormRdoState>(chave: K, valor: FormRdoState[K]) => void;
+  onCommit: () => void;
+  registrarRef: (k: keyof Erros, el: HTMLElement | null) => void;
+}) {
+  return (
+    <CardSecao titulo="Identificação" obrigatorio fixo>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="data">Data</Label>
+          <input
+            ref={(el) => registrarRef("data", el)}
+            id="data"
+            type="date"
+            value={form.data}
+            onChange={(e) => onChange("data", e.target.value)}
+            onBlur={onCommit}
+            className={inputCls(!!erros.data)}
+          />
+          <ErroCampo msg={erros.data} />
+        </div>
+        <div>
+          <Label htmlFor="hora_chegada">Hora de chegada</Label>
+          <input
+            ref={(el) => registrarRef("hora_chegada", el)}
+            id="hora_chegada"
+            type="time"
+            value={form.hora_chegada}
+            onChange={(e) => onChange("hora_chegada", e.target.value)}
+            onBlur={onCommit}
+            className={inputCls(!!erros.hora_chegada)}
+          />
+          <ErroCampo msg={erros.hora_chegada} />
+        </div>
+        <div>
+          <Label htmlFor="hora_saida">Hora de saída (opcional)</Label>
+          <input
+            id="hora_saida"
+            type="time"
+            value={form.hora_saida}
+            onChange={(e) => onChange("hora_saida", e.target.value)}
+            onBlur={onCommit}
+            className={inputCls(false)}
+          />
+        </div>
+        <div>
+          <Label>Tipo de visita</Label>
+          <SegmentedTipoVisita
+            valor={form.tipo_visita}
+            erro={!!erros.tipo_visita}
+            onChange={(v) => {
+              onChange("tipo_visita", v);
+              setTimeout(onCommit, 0);
+            }}
+            registrarRef={(el) => registrarRef("tipo_visita", el)}
+          />
+          <ErroCampo msg={erros.tipo_visita} />
+        </div>
+        <div className="sm:col-span-2">
+          <Label>Condição do local</Label>
+          <SegmentedCondicao
+            valor={form.condicao_local}
+            erro={!!erros.condicao_local}
+            onChange={(v) => {
+              onChange("condicao_local", v);
+              setTimeout(onCommit, 0);
+            }}
+            registrarRef={(el) => registrarRef("condicao_local", el)}
+          />
+          <ErroCampo msg={erros.condicao_local} />
+        </div>
+      </div>
+    </CardSecao>
+  );
+}
+
+function SegmentedTipoVisita({
+  valor,
+  erro,
+  onChange,
+  registrarRef,
+}: {
+  valor: TipoVisita | "";
+  erro: boolean;
+  onChange: (v: TipoVisita) => void;
+  registrarRef: (el: HTMLElement | null) => void;
+}) {
+  const opcoes: { v: TipoVisita; label: string }[] = [
+    { v: "medicao", label: "Medição" },
+    { v: "supervisao_montagem", label: "Supervisão de montagem" },
+  ];
+  return (
+    <div
+      ref={(el) => registrarRef(el)}
+      tabIndex={-1}
+      role="radiogroup"
+      className={`inline-flex w-full overflow-hidden rounded-sm border ${
+        erro ? "border-[#8C3A2E]" : "border-nue-taupe"
+      }`}
+    >
+      {opcoes.map((opt, i) => {
+        const ativo = valor === opt.v;
+        return (
+          <button
+            key={opt.v}
+            type="button"
+            role="radio"
+            aria-checked={ativo}
+            onClick={() => onChange(opt.v)}
+            className={`flex-1 px-3 py-2 text-sm transition-colors ${
+              i > 0 ? "border-l border-nue-taupe" : ""
+            } ${
+              ativo
+                ? "bg-nue-black text-nue-offwhite"
+                : "bg-white text-nue-black hover:bg-nue-taupe/40"
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const CONDICAO_OPCOES: { v: CondicaoLocal; label: string; bg: string; fg: string }[] = [
+  { v: "praticavel", label: "Praticável", bg: "#E8ECE4", fg: "#4A5D43" },
+  { v: "parcialmente_praticavel", label: "Parcialmente praticável", bg: "#F1E9DA", fg: "#A07B3F" },
+  { v: "impraticavel", label: "Impraticável", bg: "#F1DDD8", fg: "#8C3A2E" },
+];
+
+function SegmentedCondicao({
+  valor,
+  erro,
+  onChange,
+  registrarRef,
+}: {
+  valor: CondicaoLocal | "";
+  erro: boolean;
+  onChange: (v: CondicaoLocal) => void;
+  registrarRef: (el: HTMLElement | null) => void;
+}) {
+  return (
+    <div
+      ref={(el) => registrarRef(el)}
+      tabIndex={-1}
+      role="radiogroup"
+      className={`inline-flex w-full overflow-hidden rounded-sm border ${
+        erro ? "border-[#8C3A2E]" : "border-nue-taupe"
+      }`}
+    >
+      {CONDICAO_OPCOES.map((opt, i) => {
+        const ativo = valor === opt.v;
+        return (
+          <button
+            key={opt.v}
+            type="button"
+            role="radio"
+            aria-checked={ativo}
+            onClick={() => onChange(opt.v)}
+            className={`flex-1 px-3 py-2 text-sm transition-colors ${
+              i > 0 ? "border-l border-nue-taupe" : ""
+            } ${ativo ? "" : "bg-white text-nue-black hover:bg-nue-taupe/40"}`}
+            style={ativo ? { backgroundColor: opt.bg, color: opt.fg, fontWeight: 500 } : undefined}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ---------------- Seção 2 — Equipe + Terceiros ---------------- */
+
+function SecaoEquipe({
+  form,
+  onChangeEquipe,
+  onChangeTerceiros,
+  onCommit,
+}: {
+  form: FormRdoState;
+  onChangeEquipe: (v: EquipeItem[]) => void;
+  onChangeTerceiros: (v: TerceiroItem[]) => void;
+  onCommit: () => void;
+}) {
+  return (
+    <CardSecao titulo="Equipe presente">
+      <div className="space-y-5">
+        <ListaEquipe
+          titulo="Equipe NUE"
+          itens={form.equipe_nue}
+          onChange={onChangeEquipe}
+          onCommit={onCommit}
+          chaveSecundaria="funcao"
+          placeholderSecundario="Função"
+          labelAdicionar="Adicionar membro"
+        />
+        <div className="border-t border-nue-taupe" />
+        <ListaEquipe
+          titulo="Terceiros presentes"
+          itens={form.terceiros as unknown as EquipeItem[]}
+          onChange={(v) => onChangeTerceiros(v as unknown as TerceiroItem[])}
+          onCommit={onCommit}
+          chaveSecundaria="papel"
+          placeholderSecundario="Papel"
+          labelAdicionar="Adicionar terceiro"
+        />
+      </div>
+    </CardSecao>
+  );
+}
+
+type LinhaEditavel = { nome: string; funcao?: string; papel?: string } & Record<string, string>;
+
+function ListaEquipe<T extends LinhaEditavel>({
+  titulo,
+  itens,
+  onChange,
+  onCommit,
+  chaveSecundaria,
+  placeholderSecundario,
+  labelAdicionar,
+}: {
+  titulo: string;
+  itens: T[];
+  onChange: (v: T[]) => void;
+  onCommit: () => void;
+  chaveSecundaria: "funcao" | "papel";
+  placeholderSecundario: string;
+  labelAdicionar: string;
+}) {
+  function atualizar(idx: number, campo: "nome" | "funcao" | "papel", valor: string) {
+    const novo = itens.slice();
+    novo[idx] = { ...novo[idx], [campo]: valor } as T;
+    onChange(novo);
+  }
+  function remover(idx: number) {
+    const novo = itens.slice();
+    novo.splice(idx, 1);
+    onChange(novo);
+    setTimeout(onCommit, 0);
+  }
+  function adicionar() {
+    const novoItem = { nome: "", [chaveSecundaria]: "" } as unknown as T;
+    onChange([...itens, novoItem]);
+  }
+  return (
+    <div>
+      <Label>{titulo}</Label>
+      <div className="space-y-2">
+        {itens.map((it, idx) => (
+          <div key={idx} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={it.nome}
+              onChange={(e) => atualizar(idx, "nome", e.target.value)}
+              onBlur={onCommit}
+              placeholder="Nome"
+              className="h-9 flex-1 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-nue-black focus:outline-none focus:border-nue-graphite"
+              style={{ flexBasis: "60%" }}
+            />
+            <input
+              type="text"
+              value={(it[chaveSecundaria] ?? "") as string}
+              onChange={(e) => atualizar(idx, chaveSecundaria, e.target.value)}
+              onBlur={onCommit}
+              placeholder={placeholderSecundario}
+              className="h-9 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-nue-black focus:outline-none focus:border-nue-graphite"
+              style={{ flexBasis: "35%" }}
+            />
+            <button
+              type="button"
+              onClick={() => remover(idx)}
+              aria-label="Remover"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-nue-graphite hover:bg-nue-taupe/40 hover:text-[#8C3A2E]"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={adicionar}
+        className="mt-3 inline-flex items-center gap-1.5 text-[13px] text-nue-black hover:underline"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        {labelAdicionar}
+      </button>
+    </div>
+  );
+}
+
+/* ---------------- Seção 3 — Registros ---------------- */
+
+function SecaoRegistros({
+  form,
+  erro,
+  onChange,
+  onBlurDebounced,
+  onBlurImediato,
+  registrarRef,
+}: {
+  form: FormRdoState;
+  erro?: string;
+  onChange: <K extends keyof FormRdoState>(chave: K, valor: FormRdoState[K]) => void;
+  onBlurDebounced: (chave: string, ms?: number) => void;
+  onBlurImediato: () => void;
+  registrarRef: (el: HTMLTextAreaElement | null) => void;
+}) {
+  return (
+    <CardSecao titulo="Registros do dia">
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="registros">Registros</Label>
+          <textarea
+            ref={registrarRef}
+            id="registros"
+            value={form.registros}
+            onChange={(e) => {
+              onChange("registros", e.target.value);
+              onBlurDebounced("registros");
+            }}
+            onBlur={onBlurImediato}
+            placeholder="Descreva o que foi executado, observações da obra, condições encontradas, conversas com cliente"
+            rows={8}
+            className={`w-full rounded-sm border bg-white px-3 py-2 text-sm text-nue-black focus:outline-none focus:border-nue-graphite ${
+              erro ? "border-[#8C3A2E]" : "border-nue-taupe"
+            }`}
+          />
+          <ErroCampo msg={erro} />
+        </div>
+        <div>
+          <Label htmlFor="proximos_passos">Próximos passos (opcional)</Label>
+          <textarea
+            id="proximos_passos"
+            value={form.proximos_passos}
+            onChange={(e) => {
+              onChange("proximos_passos", e.target.value);
+              onBlurDebounced("proximos_passos");
+            }}
+            onBlur={onBlurImediato}
+            placeholder="O que ficou para próxima visita"
+            rows={4}
+            className="w-full rounded-sm border border-nue-taupe bg-white px-3 py-2 text-sm text-nue-black focus:outline-none focus:border-nue-graphite"
+          />
+        </div>
+      </div>
+    </CardSecao>
+  );
+}
+
+/* ---------------- Seção 4 — Pendências ---------------- */
+
+const PRIORIDADE_OPCOES: { v: Prioridade; label: string; bg: string; fg: string }[] = [
+  { v: "alta", label: "Alta", bg: "#F1DDD8", fg: "#8C3A2E" },
+  { v: "media", label: "Média", bg: "#F1E9DA", fg: "#A07B3F" },
+  { v: "baixa", label: "Baixa", bg: "#E6E4DF", fg: "#41423E" },
+];
+
+function SecaoPendencias({
+  itens,
+  onChange,
+  onCommit,
+}: {
+  itens: PendenciaItem[];
+  onChange: (v: PendenciaItem[]) => void;
+  onCommit: () => void;
+}) {
+  function atualizar(idx: number, patch: Partial<PendenciaItem>) {
+    const novo = itens.slice();
+    novo[idx] = { ...novo[idx], ...patch };
+    onChange(novo);
+  }
+  function remover(idx: number) {
+    const novo = itens.slice();
+    novo.splice(idx, 1);
+    onChange(novo);
+    setTimeout(onCommit, 0);
+  }
+  function adicionar() {
+    onChange([...itens, { descricao: "", prioridade: "media" }]);
+  }
+
+  return (
+    <CardSecao titulo="Pendências">
+      {itens.length === 0 ? (
+        <p className="text-sm text-nue-graphite">Nenhuma pendência registrada</p>
+      ) : (
+        <ul className="space-y-3">
+          {itens.map((it, idx) => (
+            <li key={idx} className="space-y-2">
+              <div className="flex items-start gap-2">
+                <input
+                  type="text"
+                  value={it.descricao}
+                  onChange={(e) => atualizar(idx, { descricao: e.target.value })}
+                  onBlur={onCommit}
+                  placeholder="Descreva a pendência"
+                  className="h-9 flex-1 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-nue-black focus:outline-none focus:border-nue-graphite"
+                />
+                <button
+                  type="button"
+                  onClick={() => remover(idx)}
+                  aria-label="Remover"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-nue-graphite hover:bg-nue-taupe/40 hover:text-[#8C3A2E]"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {PRIORIDADE_OPCOES.map((p) => {
+                  const ativo = it.prioridade === p.v;
+                  return (
+                    <button
+                      key={p.v}
+                      type="button"
+                      onClick={() => {
+                        atualizar(idx, { prioridade: p.v });
+                        setTimeout(onCommit, 0);
+                      }}
+                      className={`rounded-sm border px-2.5 py-1 text-[11px] uppercase transition-colors ${
+                        ativo ? "border-transparent" : "border-nue-taupe text-nue-graphite hover:bg-nue-taupe/40"
+                      }`}
+                      style={
+                        ativo
+                          ? {
+                              backgroundColor: p.bg,
+                              color: p.fg,
+                              fontFamily: "var(--font-mono)",
+                              letterSpacing: "0.06em",
+                              fontWeight: 500,
+                            }
+                          : { fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }
+                      }
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button
+        type="button"
+        onClick={adicionar}
+        className="mt-4 inline-flex items-center gap-1.5 text-[13px] text-nue-black hover:underline"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Adicionar pendência
+      </button>
+    </CardSecao>
+  );
+}
+
+/* ---------------- Seção 5 — Pontos de atenção ---------------- */
+
+function SecaoPontosAtencao({
+  itens,
+  onChange,
+  onCommit,
+}: {
+  itens: PontoAtencaoItem[];
+  onChange: (v: PontoAtencaoItem[]) => void;
+  onCommit: () => void;
+}) {
+  function atualizar(idx: number, valor: string) {
+    const novo = itens.slice();
+    novo[idx] = { descricao: valor };
+    onChange(novo);
+  }
+  function remover(idx: number) {
+    const novo = itens.slice();
+    novo.splice(idx, 1);
+    onChange(novo);
+    setTimeout(onCommit, 0);
+  }
+  function adicionar() {
+    onChange([...itens, { descricao: "" }]);
+  }
+
+  return (
+    <CardSecao titulo="Pontos de atenção">
+      {itens.length === 0 ? (
+        <p className="text-sm text-nue-graphite">Nenhum ponto registrado</p>
+      ) : (
+        <ul className="space-y-2">
+          {itens.map((it, idx) => (
+            <li key={idx} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={it.descricao}
+                onChange={(e) => atualizar(idx, e.target.value)}
+                onBlur={onCommit}
+                placeholder="Descreva o ponto de atenção"
+                className="h-9 flex-1 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-nue-black focus:outline-none focus:border-nue-graphite"
+              />
+              <button
+                type="button"
+                onClick={() => remover(idx)}
+                aria-label="Remover"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-nue-graphite hover:bg-nue-taupe/40 hover:text-[#8C3A2E]"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button
+        type="button"
+        onClick={adicionar}
+        className="mt-4 inline-flex items-center gap-1.5 text-[13px] text-nue-black hover:underline"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Adicionar ponto de atenção
+      </button>
+    </CardSecao>
+  );
+}
+
+/* ---------------- Rodapé fixo ---------------- */
+
+function RodapeFixo({
+  saveStatus,
+  finalizando,
+  onSalvarRascunho,
+  onFinalizar,
+  onRetry,
+}: {
+  saveStatus: SaveStatus;
+  finalizando: boolean;
+  onSalvarRascunho: () => void;
+  onFinalizar: () => void;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-nue-taupe bg-white"
+      style={{ padding: "12px 24px" }}
+    >
+      <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 md:pl-60">
+        <IndicadorSave saveStatus={saveStatus} onRetry={onRetry} />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onSalvarRascunho}
+            disabled={finalizando}
+            className="h-9 rounded-sm border border-nue-taupe bg-white px-4 text-sm text-nue-black transition-colors hover:bg-nue-taupe/40 disabled:opacity-40"
+          >
+            Salvar rascunho
+          </button>
+          <button
+            type="button"
+            onClick={onFinalizar}
+            disabled={finalizando}
+            className="h-9 rounded-sm bg-nue-black px-4 text-sm font-medium text-nue-offwhite transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {finalizando ? "Finalizando..." : "Finalizar RDO"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Diálogo confirmar ---------------- */
+
+function DialogoConfirmar({
+  onCancelar,
+  onDescartar,
+}: {
+  onCancelar: () => void;
+  onDescartar: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="absolute inset-0 bg-nue-black/60" onClick={onCancelar} aria-hidden />
+      <div className="relative w-full max-w-[420px] rounded-md bg-white shadow-lg">
+        <header className="flex items-center justify-between border-b border-nue-taupe px-5 py-4">
+          <h2 className="text-lg text-nue-black" style={{ fontFamily: "var(--font-display)" }}>
+            Descartar alterações?
+          </h2>
+          <button
+            type="button"
+            onClick={onCancelar}
+            className="rounded-sm p-1 text-nue-graphite hover:bg-nue-taupe/40"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+        <div className="px-5 py-4 text-sm text-nue-black">
+          Você tem alterações não salvas. Sair agora vai descartar essas alterações.
+        </div>
+        <footer className="flex justify-end gap-2 border-t border-nue-taupe px-5 py-3">
+          <button
+            type="button"
+            onClick={onCancelar}
+            className="h-9 rounded-sm border border-nue-taupe bg-white px-4 text-sm text-nue-black hover:bg-nue-taupe/40"
+          >
+            Continuar editando
+          </button>
+          <button
+            type="button"
+            onClick={onDescartar}
+            className="h-9 rounded-sm bg-[#8C3A2E] px-4 text-sm font-medium text-white hover:opacity-90"
+          >
+            Descartar
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+// Tira o aviso de import não usado (useMemo é útil para eventuais cálculos futuros)
+void useMemo;
