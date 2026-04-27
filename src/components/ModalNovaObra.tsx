@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { gerarProximoIdObra } from "@/lib/ids";
+import { criarAmbientesEmLote } from "@/lib/ambientes";
 import type { Supervisor } from "@/lib/painel";
 
 const obraSchema = z.object({
