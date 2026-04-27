@@ -14,6 +14,7 @@ import {
   Pencil,
   Printer,
   ArrowLeft,
+  Settings,
 } from "lucide-react";
 import {
   fetchDiarioObra,
