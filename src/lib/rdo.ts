@@ -93,10 +93,11 @@ export async function fetchRdoCompleto(id: string): Promise<RdoComObra> {
       `*,
        supervisor:supervisores(id, nome, iniciais),
        fotos:rdo_fotos(*, ambiente:obra_ambientes(id, nome, ordem, ativo)),
-       pendencias:rdo_pendencias(*),
-       pontos_atencao:rdo_pontos_atencao(*),
+       pendencias:rdo_pendencias(*, ambiente:obra_ambientes(id, nome, ordem, ativo)),
+       pontos_atencao:rdo_pontos_atencao(*, ambiente:obra_ambientes(id, nome, ordem, ativo)),
        equipe_nue:rdo_equipe_nue(*),
        terceiros:rdo_terceiros(*),
+       observacoes_ambiente:rdo_observacoes_ambiente(*),
        obra:obras(*, supervisor:supervisores(id, nome, iniciais))`
     )
     .eq("id", id)
@@ -137,6 +138,8 @@ export async function fetchRdoCompleto(id: string): Promise<RdoComObra> {
     terceiros: ((r.terceiros as RdoTerceiro[]) ?? [])
       .slice()
       .sort((a, b) => a.ordem - b.ordem),
+    observacoes_ambiente:
+      ((r.observacoes_ambiente as RdoCompleto["observacoes_ambiente"]) ?? []).slice(),
   };
 
   const obra: ObraComSupervisor = {
