@@ -493,6 +493,8 @@ export function FormularioRdo(props: Props) {
             obraId={props.obra.id}
             fotos={fotos}
             setFotos={setFotos}
+            ambientesObra={ambientesObra}
+            onAmbientesChanged={() => void recarregarAmbientes()}
             onSavingStart={marcarSalvando}
             onSavingDone={marcarSalvo}
             onSavingError={marcarErro}
