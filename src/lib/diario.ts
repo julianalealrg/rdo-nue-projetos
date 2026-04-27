@@ -50,6 +50,8 @@ export class ObraNaoEncontradaError extends Error {
 }
 
 const FOTO_SELECT = "*, ambiente:obra_ambientes(id, nome, ordem, ativo)";
+const PEND_SELECT = "*, ambiente:obra_ambientes(id, nome, ordem, ativo)";
+const PONTO_SELECT = "*, ambiente:obra_ambientes(id, nome, ordem, ativo)";
 
 export async function fetchDiarioObra(id: string): Promise<DiarioObraData> {
   const [obraRes, rdosRes, ambientesRes] = await Promise.all([
@@ -64,10 +66,11 @@ export async function fetchDiarioObra(id: string): Promise<DiarioObraData> {
         `*,
          supervisor:supervisores(id, nome, iniciais),
          fotos:rdo_fotos(${FOTO_SELECT}),
-         pendencias:rdo_pendencias(*),
-         pontos_atencao:rdo_pontos_atencao(*),
+         pendencias:rdo_pendencias(${PEND_SELECT}),
+         pontos_atencao:rdo_pontos_atencao(${PONTO_SELECT}),
          equipe_nue:rdo_equipe_nue(*),
-         terceiros:rdo_terceiros(*)`,
+         terceiros:rdo_terceiros(*),
+         observacoes_ambiente:rdo_observacoes_ambiente(*)`,
       )
       .eq("obra_id", id)
       .order("data", { ascending: false })
@@ -105,6 +108,8 @@ export async function fetchDiarioObra(id: string): Promise<DiarioObraData> {
     terceiros: ((r as { terceiros: RdoTerceiro[] }).terceiros ?? [])
       .slice()
       .sort((a, b) => a.ordem - b.ordem),
+    observacoes_ambiente:
+      ((r as { observacoes_ambiente: RdoObservacaoAmbiente[] }).observacoes_ambiente ?? []).slice(),
   }));
 
   return {
