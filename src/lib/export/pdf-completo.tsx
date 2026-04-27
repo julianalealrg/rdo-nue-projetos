@@ -239,17 +239,15 @@ export function RdoBloco({ rdo, fotosCache, variant = "completo" }: RdoBlocoProp
         <View style={styles.badgeRow}>
           <Badge kind="tipo" value={rdo.tipo_visita} label={TIPO_VISITA_LABEL[rdo.tipo_visita] ?? rdo.tipo_visita} />
           <Badge kind="cond" value={rdo.condicao_local} label={CONDICAO_LABEL[rdo.condicao_local] ?? rdo.condicao_local} />
-          {rdo.supervisor && (
-            <Text style={[styles.badge, { backgroundColor: COLORS.taupeLight, color: COLORS.black }]}>
-              {rdo.supervisor.nome.toUpperCase()}
-            </Text>
-          )}
           {!rdo.finalizado && (
             <Text style={[styles.badge, { backgroundColor: "#E6E4DF", color: COLORS.muted }]}>
               RASCUNHO
             </Text>
           )}
         </View>
+        <Text style={styles.rdoResponsavel}>
+          RESPONSÁVEL: {rdo.supervisor?.nome ?? "—"}
+        </Text>
       </View>
 
       {rdo.registros.trim() !== "" && (
