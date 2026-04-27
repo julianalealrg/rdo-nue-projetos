@@ -464,78 +464,90 @@ export function FormularioRdo(props: Props) {
         onRetry={agendarSaveImediato}
       />
 
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
-        {/* Coluna esquerda (60%) */}
-        <div className="space-y-4 lg:col-span-3">
-          <SecaoIdentificacao
-            form={form}
-            erros={erros}
-            onChange={atualizarCampo}
-            onCommit={agendarSaveImediato}
-            registrarRef={(k, el) => refsCampos.current.set(k, el)}
-          />
-          <SecaoRegistros
-            form={form}
-            erro={erros.registros}
-            onChange={atualizarCampo}
-            onBlurDebounced={agendarSaveDebounced}
-            onBlurImediato={agendarSaveImediato}
-            registrarRef={(el) => refsCampos.current.set("registros", el)}
-          />
-          <SecaoPendencias
-            itens={form.pendencias}
-            onChange={(novos) => {
-              atualizarCampo("pendencias", novos);
-            }}
-            onCommit={agendarSaveImediato}
-          />
-        </div>
+      <div className="mx-auto mt-6 w-full max-w-[880px] space-y-4 px-4 sm:px-0">
+        <SecaoIdentificacao
+          form={form}
+          erros={erros}
+          onChange={atualizarCampo}
+          onCommit={agendarSaveImediato}
+          registrarRef={(k, el) => refsCampos.current.set(k, el)}
+        />
 
-        {/* Coluna direita (40%) */}
-        <div className="space-y-4 lg:col-span-2">
-          <SecaoEquipe
-            form={form}
-            onChangeEquipe={(v) => atualizarCampo("equipe_nue", v)}
-            onChangeTerceiros={(v) => atualizarCampo("terceiros", v)}
-            onCommit={agendarSaveImediato}
-          />
-          <SecaoPontosAtencao
-            itens={form.pontos_atencao}
-            onChange={(v) => atualizarCampo("pontos_atencao", v)}
-            onCommit={agendarSaveImediato}
-          />
-          <SecaoFotos
-            rdoId={rdoId}
-            obraId={props.obra.id}
-            fotos={fotos}
-            setFotos={setFotos}
-            ambientesObra={ambientesObra}
-            onAmbientesChanged={() => void recarregarAmbientes()}
-            onSavingStart={marcarSalvando}
-            onSavingDone={marcarSalvo}
-            onSavingError={marcarErro}
-            agendarPersistirOrdem={agendarPersistirOrdem}
-            mensagemBloqueio={mensagemBloqueio}
-          />
-          <SecaoAssinatura
-            ref={secaoAssinaturaRef}
-            rdoId={rdoId}
-            assinaturaUrl={assinaturaUrl}
-            substituindo={substituindoAssinatura}
-            onSubstituir={() => setSubstituindoAssinatura(true)}
-            onCancelarSubstituir={() => {
-              setSubstituindoAssinatura(false);
-              sigPadRef.current?.clear();
-              sigDirtyRef.current = false;
-            }}
-            supervisor={props.obra.supervisor}
-            destacarErro={assinaturaErroDestaque}
-            sigPadRef={sigPadRef}
-            sigDirtyRef={sigDirtyRef}
-            onDirty={() => setDirty(true)}
-            mensagemBloqueio={mensagemBloqueio}
-          />
-        </div>
+        <SecaoEquipe
+          form={form}
+          onChangeEquipe={(v) => atualizarCampo("equipe_nue", v)}
+          onChangeTerceiros={(v) => atualizarCampo("terceiros", v)}
+          onCommit={agendarSaveImediato}
+        />
+
+        <SecaoRegistros
+          form={form}
+          erro={erros.registros}
+          onChange={atualizarCampo}
+          onBlurDebounced={agendarSaveDebounced}
+          onBlurImediato={agendarSaveImediato}
+          registrarRef={(el) => refsCampos.current.set("registros", el)}
+        />
+
+        <SecaoPendencias
+          itens={form.pendencias}
+          onChange={(novos) => atualizarCampo("pendencias", novos)}
+          onCommit={agendarSaveImediato}
+          ambienteId={null}
+          titulo="Pendências gerais"
+          vazioMsg="Nenhuma pendência geral registrada"
+        />
+
+        <SecaoPontosAtencao
+          itens={form.pontos_atencao}
+          onChange={(v) => atualizarCampo("pontos_atencao", v)}
+          onCommit={agendarSaveImediato}
+          ambienteId={null}
+          titulo="Pontos de atenção gerais"
+          vazioMsg="Nenhum ponto geral registrado"
+        />
+
+        <SecaoAmbientes
+          rdoId={rdoId}
+          obraId={props.obra.id}
+          ambientesObra={ambientesObra}
+          fotos={fotos}
+          setFotos={setFotos}
+          pendencias={form.pendencias}
+          setPendencias={(v) => atualizarCampo("pendencias", v)}
+          pontosAtencao={form.pontos_atencao}
+          setPontosAtencao={(v) => atualizarCampo("pontos_atencao", v)}
+          observacoesAmbiente={observacoesAmbiente}
+          setObservacoesAmbiente={setObservacoesAmbiente}
+          ambientesAbertosNoRdo={ambientesAbertosNoRdo}
+          setAmbientesAbertosNoRdo={setAmbientesAbertosNoRdo}
+          onAmbientesChanged={() => void recarregarAmbientes()}
+          onSavingStart={marcarSalvando}
+          onSavingDone={marcarSalvo}
+          onSavingError={marcarErro}
+          onCommit={agendarSaveImediato}
+          agendarPersistirOrdem={agendarPersistirOrdem}
+          mensagemBloqueio={mensagemBloqueio}
+        />
+
+        <SecaoAssinatura
+          ref={secaoAssinaturaRef}
+          rdoId={rdoId}
+          assinaturaUrl={assinaturaUrl}
+          substituindo={substituindoAssinatura}
+          onSubstituir={() => setSubstituindoAssinatura(true)}
+          onCancelarSubstituir={() => {
+            setSubstituindoAssinatura(false);
+            sigPadRef.current?.clear();
+            sigDirtyRef.current = false;
+          }}
+          supervisor={props.obra.supervisor}
+          destacarErro={assinaturaErroDestaque}
+          sigPadRef={sigPadRef}
+          sigDirtyRef={sigDirtyRef}
+          onDirty={() => setDirty(true)}
+          mensagemBloqueio={mensagemBloqueio}
+        />
       </div>
 
 
