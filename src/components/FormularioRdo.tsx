@@ -118,6 +118,21 @@ export function FormularioRdo(props: Props) {
   const [confirmandoSair, setConfirmandoSair] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
 
+  // Fotos: estado local refletindo o banco
+  const [fotos, setFotos] = useState<RdoFoto[]>(
+    props.modo === "editar" ? props.rdo.fotos : [],
+  );
+
+  // Assinatura
+  const [assinaturaUrl, setAssinaturaUrl] = useState<string | null>(
+    props.modo === "editar" ? props.rdo.assinatura_url : null,
+  );
+  const [substituindoAssinatura, setSubstituindoAssinatura] = useState(false);
+  const [assinaturaErroDestaque, setAssinaturaErroDestaque] = useState(false);
+  const sigPadRef = useRef<SignatureCanvas | null>(null);
+  const sigDirtyRef = useRef(false);
+  const secaoAssinaturaRef = useRef<HTMLDivElement | null>(null);
+
   // Refs para controlar concorrência e debounce
   const ultimoSavePromise = useRef<Promise<void> | null>(null);
   const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -137,6 +152,7 @@ export function FormularioRdo(props: Props) {
       f.condicao_local.length > 0
     );
   }, []);
+
 
   const persistir = useCallback(
     async (opcoes?: { finalizado?: boolean }): Promise<string | null> => {
