@@ -32,16 +32,20 @@ export function ModalNovaObra({ open, onClose, supervisores, onCreated }: Props)
   const [nomeCliente, setNomeCliente] = useState("");
   const [endereco, setEndereco] = useState("");
   const [supervisorId, setSupervisorId] = useState<string>("");
+  const [ambientes, setAmbientes] = useState<string[]>([]);
   const [erros, setErros] = useState<{ nome_cliente?: string; endereco?: string }>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const ambienteRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const focarUltimoAmbienteRef = useRef(false);
 
   useEffect(() => {
     if (open) {
       setNomeCliente("");
       setEndereco("");
       setSupervisorId("");
+      setAmbientes([]);
       setErros({});
       setErroGeral(null);
       setEnviando(false);
@@ -50,6 +54,14 @@ export function ModalNovaObra({ open, onClose, supervisores, onCreated }: Props)
       return () => clearTimeout(t);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (focarUltimoAmbienteRef.current && ambientes.length > 0) {
+      const ultimo = ambienteRefs.current[ambientes.length - 1];
+      ultimo?.focus();
+      focarUltimoAmbienteRef.current = false;
+    }
+  }, [ambientes.length]);
 
   // Fechar com ESC
   useEffect(() => {
