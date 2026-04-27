@@ -1811,6 +1811,7 @@ function SecaoAssinatura({
   sigPadRef,
   sigDirtyRef,
   onDirty,
+  mensagemBloqueio,
 }: {
   ref: React.RefObject<HTMLDivElement | null>;
   rdoId: string | null;
@@ -1823,6 +1824,7 @@ function SecaoAssinatura({
   sigPadRef: React.MutableRefObject<SignatureCanvas | null>;
   sigDirtyRef: React.MutableRefObject<boolean>;
   onDirty: () => void;
+  mensagemBloqueio: string;
 }) {
   const desabilitado = !rdoId;
   const mostrarCanvas = !assinaturaUrl || substituindo;
