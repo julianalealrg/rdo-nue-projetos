@@ -24,7 +24,6 @@ function uuidv4(): string {
   });
 }
 
-/** Comprime a imagem para no máximo MAX_DIM no maior lado, JPEG quality 0.85. */
 async function comprimirImagem(file: File): Promise<Blob> {
   const url = URL.createObjectURL(file);
   try {
@@ -71,7 +70,7 @@ export async function uploadFoto(args: {
   obra_id: string;
   rdo_id: string;
   ordem: number;
-  ambiente?: string;
+  ambiente_id: string | null;
 }): Promise<RdoFoto> {
   if (args.file.size > MAX_BYTES) {
     throw new ArquivoMuitoGrandeError(args.file.name);
@@ -94,7 +93,7 @@ export async function uploadFoto(args: {
       rdo_id: args.rdo_id,
       url,
       legenda: "",
-      ambiente: args.ambiente ?? "",
+      ambiente_id: args.ambiente_id,
       ordem: args.ordem,
     })
     .select("*")
@@ -106,7 +105,6 @@ export async function uploadFoto(args: {
   return inserted as RdoFoto;
 }
 
-/** Extrai o caminho do bucket a partir da URL pública. */
 export function extrairPathFoto(url: string): string | null {
   const idx = url.indexOf(`/${BUCKET}/`);
   if (idx === -1) return null;
@@ -122,19 +120,12 @@ export async function removerFoto(foto: RdoFoto): Promise<void> {
   }
 }
 
-export async function atualizarFotoCampos(args: {
-  id: string;
-  legenda?: string;
-  ambiente?: string;
-}): Promise<void> {
-  const patch: { legenda?: string; ambiente?: string } = {};
-  if (args.legenda !== undefined) patch.legenda = args.legenda;
-  if (args.ambiente !== undefined) patch.ambiente = args.ambiente;
+export async function atualizarLegendaFoto(id: string, legenda: string): Promise<void> {
   const { error } = await supabase
     .from("rdo_fotos")
-    .update(patch)
-    .eq("id", args.id);
-  if (error) throw new Error(`Falha ao atualizar foto: ${error.message}`);
+    .update({ legenda })
+    .eq("id", id);
+  if (error) throw new Error(`Falha ao atualizar legenda: ${error.message}`);
 }
 
 export async function persistirOrdemFotos(fotos: RdoFoto[]): Promise<void> {
@@ -145,57 +136,6 @@ export async function persistirOrdemFotos(fotos: RdoFoto[]): Promise<void> {
   for (const r of results) {
     if (r.error) throw new Error(`Falha ao reordenar: ${r.error.message}`);
   }
-}
-
-/** Renomeia em massa todas as fotos de um RDO de um ambiente para outro. */
-export async function renomearAmbienteRdo(args: {
-  rdo_id: string;
-  de: string;
-  para: string;
-}): Promise<void> {
-  const { error } = await supabase
-    .from("rdo_fotos")
-    .update({ ambiente: args.para })
-    .eq("rdo_id", args.rdo_id)
-    .eq("ambiente", args.de);
-  if (error) throw new Error(`Falha ao renomear ambiente: ${error.message}`);
-}
-
-/** Move todas as fotos de um ambiente do RDO para "" (sem ambiente). */
-export async function limparAmbienteRdo(args: {
-  rdo_id: string;
-  ambiente: string;
-}): Promise<void> {
-  const { error } = await supabase
-    .from("rdo_fotos")
-    .update({ ambiente: "" })
-    .eq("rdo_id", args.rdo_id)
-    .eq("ambiente", args.ambiente);
-  if (error) throw new Error(`Falha ao limpar ambiente: ${error.message}`);
-}
-
-/** Lista os nomes de ambientes já usados nos RDOs da mesma obra (sem repetir, sem vazios). */
-export async function fetchAmbientesDaObra(obra_id: string): Promise<string[]> {
-  const { data: rdosObra, error: errRdos } = await supabase
-    .from("rdos")
-    .select("id")
-    .eq("obra_id", obra_id);
-  if (errRdos) throw new Error(`Falha ao listar RDOs: ${errRdos.message}`);
-  const ids = (rdosObra ?? []).map((r) => r.id);
-  if (ids.length === 0) return [];
-
-  const { data, error } = await supabase
-    .from("rdo_fotos")
-    .select("ambiente")
-    .in("rdo_id", ids)
-    .neq("ambiente", "");
-  if (error) throw new Error(`Falha ao listar ambientes: ${error.message}`);
-
-  const set = new Set<string>();
-  for (const row of data ?? []) {
-    if (row.ambiente) set.add(row.ambiente);
-  }
-  return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
 
 /* ------------- Assinatura ------------- */
