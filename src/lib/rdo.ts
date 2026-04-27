@@ -174,8 +174,12 @@ export function rdoParaForm(rdo: RdoCompleto): FormRdoState {
     pendencias: rdo.pendencias.map((p) => ({
       descricao: p.descricao,
       prioridade: p.prioridade,
+      ambiente_id: p.ambiente_id ?? null,
     })),
-    pontos_atencao: rdo.pontos_atencao.map((p) => ({ descricao: p.descricao })),
+    pontos_atencao: rdo.pontos_atencao.map((p) => ({
+      descricao: p.descricao,
+      ambiente_id: p.ambiente_id ?? null,
+    })),
   };
 }
 
