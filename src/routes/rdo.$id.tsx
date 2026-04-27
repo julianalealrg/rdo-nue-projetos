@@ -27,6 +27,7 @@ import {
 import { SupervisorAvatar } from "@/components/ObraBadges";
 import { Lightbox } from "@/components/Lightbox";
 import { ModalVersoesRdo } from "@/components/ModalVersoesRdo";
+import { ExportarMenu } from "@/components/ExportarMenu";
 
 export const Route = createFileRoute("/rdo/$id")({
   component: RdoDetalheRoute,
@@ -558,7 +559,10 @@ function Cabecalho({
             <Pencil className="h-4 w-4" />
             Editar
           </Link>
-          <ImprimirDropdown />
+          <ExportarMenu
+            escopo={{ tipo: "rdo", obra, rdo }}
+            rotulo="Imprimir"
+          />
           <Link
             to="/obra/$id"
             params={{ id: obra.id }}
