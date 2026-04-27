@@ -63,11 +63,8 @@ export async function fetchObra(id: string): Promise<ObraComSupervisor> {
   if (error) throw new Error(`Falha ao carregar obra: ${error.message}`);
   if (!data) throw new ObraNaoEncontradaError(id);
 
-  return {
-    ...(data as Rdo extends never ? never : ObraComSupervisor),
-    supervisor:
-      (data as { supervisor: ObraComSupervisor["supervisor"] }).supervisor ?? null,
-  } as ObraComSupervisor;
+  const obraRaw = data as unknown as ObraComSupervisor;
+  return { ...obraRaw, supervisor: obraRaw.supervisor ?? null };
 }
 
 export type RdoComObra = {
