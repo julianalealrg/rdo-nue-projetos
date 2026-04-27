@@ -33,6 +33,7 @@ import {
 import { StatusBadge, SupervisorAvatar } from "@/components/ObraBadges";
 import { Lightbox } from "@/components/Lightbox";
 import { ModalGerenciarAmbientes } from "@/components/ModalGerenciarAmbientes";
+import { ExportarMenu } from "@/components/ExportarMenu";
 
 export const Route = createFileRoute("/obra/$id")({
   component: DiarioObra,
