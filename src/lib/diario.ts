@@ -5,14 +5,22 @@ export type Obra = Tables<"obras">;
 export type Supervisor = Tables<"supervisores">;
 export type Rdo = Tables<"rdos">;
 export type Ambiente = Tables<"obra_ambientes">;
+export type AmbienteResumo = Pick<Ambiente, "id" | "nome" | "ordem" | "ativo">;
 export type RdoFotoBase = Tables<"rdo_fotos">;
 export type RdoFoto = RdoFotoBase & {
-  ambiente?: Pick<Ambiente, "id" | "nome" | "ordem" | "ativo"> | null;
+  ambiente?: AmbienteResumo | null;
 };
-export type RdoPendencia = Tables<"rdo_pendencias">;
-export type RdoPontoAtencao = Tables<"rdo_pontos_atencao">;
+export type RdoPendenciaBase = Tables<"rdo_pendencias">;
+export type RdoPendencia = RdoPendenciaBase & {
+  ambiente?: AmbienteResumo | null;
+};
+export type RdoPontoAtencaoBase = Tables<"rdo_pontos_atencao">;
+export type RdoPontoAtencao = RdoPontoAtencaoBase & {
+  ambiente?: AmbienteResumo | null;
+};
 export type RdoEquipeNue = Tables<"rdo_equipe_nue">;
 export type RdoTerceiro = Tables<"rdo_terceiros">;
+export type RdoObservacaoAmbiente = Tables<"rdo_observacoes_ambiente">;
 
 export type RdoCompleto = Rdo & {
   supervisor: Pick<Supervisor, "id" | "nome" | "iniciais"> | null;
@@ -21,6 +29,7 @@ export type RdoCompleto = Rdo & {
   pontos_atencao: RdoPontoAtencao[];
   equipe_nue: RdoEquipeNue[];
   terceiros: RdoTerceiro[];
+  observacoes_ambiente: RdoObservacaoAmbiente[];
 };
 
 export type ObraComSupervisor = Obra & {
