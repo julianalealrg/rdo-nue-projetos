@@ -313,7 +313,7 @@ export function RdoBloco({ rdo, fotosCache, variant = "completo" }: RdoBlocoProp
       {grupos.map((g) => {
         const obs = (rdo.observacoes_ambiente.find((o) => o.ambiente_id === g.id)?.texto ?? "").trim();
         return (
-          <View key={g.id} wrap={variant !== "detalhado"}>
+          <View key={g.id} style={styles.ambienteBloco} wrap={variant !== "detalhado"}>
             <View style={styles.ambienteHeader}>
               <Text style={styles.ambienteTitle}>Ambiente: {g.nome}</Text>
             </View>
@@ -397,7 +397,7 @@ export function RdoBloco({ rdo, fotosCache, variant = "completo" }: RdoBlocoProp
       })}
 
       {fotosSemAmbiente.length > 0 && (
-        <View>
+        <View style={styles.ambienteBloco}>
           <View style={styles.ambienteHeader}>
             <Text style={styles.ambienteTitle}>Fotos sem ambiente</Text>
           </View>
