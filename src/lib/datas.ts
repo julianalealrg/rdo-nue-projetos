@@ -75,3 +75,30 @@ export function formatarIntervaloHorario(
   if (!saida) return c;
   return `${c} até ${formatarHora(saida)}`;
 }
+
+/** Data atual em America/Recife formatada como "yyyy-mm-dd". */
+export function hojeRecife(): string {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return fmt.format(new Date());
+}
+
+/** Hora atual em America/Recife formatada como "HH:MM". */
+export function horaAgoraRecife(): string {
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return fmt.format(new Date());
+}
+
+/** Hora atual em America/Recife formatada como "HHhMM" para indicador de auto-save. */
+export function horaAgoraRecifeFormatada(): string {
+  return formatarHora(horaAgoraRecife() + ":00");
+}
