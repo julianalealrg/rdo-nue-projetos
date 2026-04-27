@@ -18,8 +18,15 @@ import type { Json } from "@/integrations/supabase/types";
 
 export type EquipeItem = { nome: string; funcao: string };
 export type TerceiroItem = { nome: string; papel: string };
-export type PendenciaItem = { descricao: string; prioridade: Prioridade };
-export type PontoAtencaoItem = { descricao: string };
+export type PendenciaItem = {
+  descricao: string;
+  prioridade: Prioridade;
+  ambiente_id: string | null;
+};
+export type PontoAtencaoItem = {
+  descricao: string;
+  ambiente_id: string | null;
+};
 
 export type FormRdoState = {
   data: string;
