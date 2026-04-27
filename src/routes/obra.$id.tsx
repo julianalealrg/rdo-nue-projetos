@@ -150,6 +150,7 @@ function DiarioObraView({
             <CardRdo
               key={rdo.id}
               rdo={rdo}
+              obra={obra}
               expandido={expandidos.has(rdo.id)}
               onToggle={() => toggle(rdo.id)}
             />
@@ -340,10 +341,12 @@ function MiniBadge({
 
 function CardRdo({
   rdo,
+  obra,
   expandido,
   onToggle,
 }: {
   rdo: RdoCompleto;
+  obra: ObraComSupervisor;
   expandido: boolean;
   onToggle: () => void;
 }) {
@@ -458,7 +461,7 @@ function CardRdo({
       </button>
 
       {/* Conteúdo expandido */}
-      {expandido && <ConteudoRdo rdo={rdo} />}
+      {expandido && <ConteudoRdo rdo={rdo} obra={obra} />}
     </article>
   );
 }
@@ -476,7 +479,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
+function ConteudoRdo({ rdo, obra }: { rdo: RdoCompleto; obra: ObraComSupervisor }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const pendGerais = rdo.pendencias.filter((p) => p.ambiente_id == null);
@@ -741,7 +744,11 @@ function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
           <Pencil className="h-3.5 w-3.5" />
           Editar
         </Link>
-        <ImprimirDropdown />
+        <ExportarMenu
+          escopo={{ tipo: "rdo", obra, rdo }}
+          variante="inline"
+          rotulo="Imprimir RDO"
+        />
       </div>
 
       {lightboxIdx !== null && (
@@ -781,54 +788,7 @@ function ChipsInline({
   );
 }
 
-function ImprimirDropdown() {
-  const [aberto, setAberto] = useState(false);
-  const opcoes = [
-    "Imprimir RDO completo",
-    "Imprimir resumo",
-    "Imprimir só fotos",
-    "Salvar como PDF",
-  ];
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setAberto((a) => !a)}
-        className="inline-flex items-center gap-1.5 text-[13px] text-nue-black hover:underline"
-      >
-        <Printer className="h-3.5 w-3.5" />
-        Imprimir RDO
-        <ChevronDown className="h-3 w-3" />
-      </button>
-      {aberto && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} aria-hidden />
-          <div className="absolute left-0 top-full z-20 mt-1 min-w-[220px] rounded-sm border border-nue-taupe bg-white shadow-md">
-            <ul className="py-1">
-              {opcoes.map((label) => (
-                <li key={label}>
-                  <button
-                    type="button"
-                    disabled
-                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm text-nue-graphite/60 cursor-not-allowed"
-                  >
-                    <span>{label}</span>
-                    <span
-                      className="text-[10px] uppercase"
-                      style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}
-                    >
-                      Em breve
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+/* ImprimirDropdown removido — substituído por <ExportarMenu /> */
 
 /* ----------------------------- Empty / Skeleton ----------------------------- */
 
