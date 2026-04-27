@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { fetchObra, ObraNaoEncontradaError } from "@/lib/rdo";
 import { FormularioRdo } from "@/components/FormularioRdo";
 
-export const Route = createFileRoute("/obra/$id/rdo/novo")({
+export const Route = createFileRoute("/obra_/$id/rdo/novo")({
   component: NovoRdo,
 });
 
