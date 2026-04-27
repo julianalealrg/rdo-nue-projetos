@@ -33,6 +33,7 @@ import {
 import { StatusBadge, SupervisorAvatar } from "@/components/ObraBadges";
 import { Lightbox } from "@/components/Lightbox";
 import { ModalGerenciarAmbientes } from "@/components/ModalGerenciarAmbientes";
+import { ExportarMenu } from "@/components/ExportarMenu";
 
 export const Route = createFileRoute("/obra/$id")({
   component: DiarioObra,
@@ -135,6 +136,7 @@ function DiarioObraView({
     <div className="space-y-4">
       <CabecalhoObra
         obra={obra}
+        rdos={rdos}
         totalRdos={rdos.length}
         periodo={periodo}
         onGerenciarAmbientes={() => setGerenciarAmbientesAberto(true)}
@@ -148,6 +150,7 @@ function DiarioObraView({
             <CardRdo
               key={rdo.id}
               rdo={rdo}
+              obra={obra}
               expandido={expandidos.has(rdo.id)}
               onToggle={() => toggle(rdo.id)}
             />
@@ -169,11 +172,13 @@ function DiarioObraView({
 
 function CabecalhoObra({
   obra,
+  rdos,
   totalRdos,
   periodo,
   onGerenciarAmbientes,
 }: {
   obra: ObraComSupervisor;
+  rdos: RdoCompleto[];
   totalRdos: number;
   periodo: string;
   onGerenciarAmbientes: () => void;
@@ -212,7 +217,10 @@ function CabecalhoObra({
             <Settings className="h-4 w-4" />
             Gerenciar ambientes
           </button>
-          <ExportarDropdown />
+          <ExportarMenu
+            escopo={{ tipo: "diario", obra, rdos }}
+            rotulo="Exportar diário"
+          />
         </div>
       </div>
 
@@ -285,54 +293,7 @@ function Divisor() {
   return <span className="hidden h-4 w-px bg-nue-taupe sm:inline-block" aria-hidden />;
 }
 
-function ExportarDropdown() {
-  const [aberto, setAberto] = useState(false);
-  const opcoes = [
-    "Exportar PDF",
-    "Exportar Excel",
-    "Exportar fotos (.zip)",
-    "Compartilhar link",
-  ];
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setAberto((a) => !a)}
-        className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
-      >
-        <Download className="h-4 w-4" />
-        Exportar diário
-        <ChevronDown className="h-3.5 w-3.5" />
-      </button>
-      {aberto && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} aria-hidden />
-          <div className="absolute right-0 top-full z-20 mt-1 min-w-[220px] rounded-sm border border-nue-taupe bg-white shadow-md">
-            <ul className="py-1">
-              {opcoes.map((label) => (
-                <li key={label}>
-                  <button
-                    type="button"
-                    disabled
-                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm text-nue-graphite/60 cursor-not-allowed"
-                  >
-                    <span>{label}</span>
-                    <span
-                      className="text-[10px] uppercase"
-                      style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}
-                    >
-                      Em breve
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+/* ExportarDropdown removido — substituído por <ExportarMenu /> */
 
 /* ----------------------------- Card RDO ----------------------------- */
 
@@ -380,10 +341,12 @@ function MiniBadge({
 
 function CardRdo({
   rdo,
+  obra,
   expandido,
   onToggle,
 }: {
   rdo: RdoCompleto;
+  obra: ObraComSupervisor;
   expandido: boolean;
   onToggle: () => void;
 }) {
@@ -498,7 +461,7 @@ function CardRdo({
       </button>
 
       {/* Conteúdo expandido */}
-      {expandido && <ConteudoRdo rdo={rdo} />}
+      {expandido && <ConteudoRdo rdo={rdo} obra={obra} />}
     </article>
   );
 }
@@ -516,7 +479,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
+function ConteudoRdo({ rdo, obra }: { rdo: RdoCompleto; obra: ObraComSupervisor }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const pendGerais = rdo.pendencias.filter((p) => p.ambiente_id == null);
@@ -781,7 +744,11 @@ function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
           <Pencil className="h-3.5 w-3.5" />
           Editar
         </Link>
-        <ImprimirDropdown />
+        <ExportarMenu
+          escopo={{ tipo: "rdo", obra, rdo }}
+          variante="inline"
+          rotulo="Imprimir RDO"
+        />
       </div>
 
       {lightboxIdx !== null && (
@@ -821,54 +788,7 @@ function ChipsInline({
   );
 }
 
-function ImprimirDropdown() {
-  const [aberto, setAberto] = useState(false);
-  const opcoes = [
-    "Imprimir RDO completo",
-    "Imprimir resumo",
-    "Imprimir só fotos",
-    "Salvar como PDF",
-  ];
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setAberto((a) => !a)}
-        className="inline-flex items-center gap-1.5 text-[13px] text-nue-black hover:underline"
-      >
-        <Printer className="h-3.5 w-3.5" />
-        Imprimir RDO
-        <ChevronDown className="h-3 w-3" />
-      </button>
-      {aberto && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setAberto(false)} aria-hidden />
-          <div className="absolute left-0 top-full z-20 mt-1 min-w-[220px] rounded-sm border border-nue-taupe bg-white shadow-md">
-            <ul className="py-1">
-              {opcoes.map((label) => (
-                <li key={label}>
-                  <button
-                    type="button"
-                    disabled
-                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm text-nue-graphite/60 cursor-not-allowed"
-                  >
-                    <span>{label}</span>
-                    <span
-                      className="text-[10px] uppercase"
-                      style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}
-                    >
-                      Em breve
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+/* ImprimirDropdown removido — substituído por <ExportarMenu /> */
 
 /* ----------------------------- Empty / Skeleton ----------------------------- */
 
