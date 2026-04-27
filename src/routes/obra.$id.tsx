@@ -519,6 +519,56 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
+  const pendGerais = rdo.pendencias.filter((p) => p.ambiente_id == null);
+  const pontosGerais = rdo.pontos_atencao.filter((p) => p.ambiente_id == null);
+
+  // Agrupar conteúdo por ambiente
+  type GrupoAmb = {
+    id: string;
+    nome: string;
+    ordem: number;
+    fotos: typeof rdo.fotos;
+    pendencias: typeof rdo.pendencias;
+    pontos: typeof rdo.pontos_atencao;
+    obs: string;
+  };
+  const mapaAmb = new Map<string, GrupoAmb>();
+  function getOrInit(id: string, nome: string, ordem: number): GrupoAmb {
+    let g = mapaAmb.get(id);
+    if (!g) {
+      g = { id, nome, ordem, fotos: [], pendencias: [], pontos: [], obs: "" };
+      mapaAmb.set(id, g);
+    }
+    return g;
+  }
+  for (const f of rdo.fotos) {
+    if (f.ambiente_id) {
+      const g = getOrInit(f.ambiente_id, f.ambiente?.nome ?? "Ambiente removido", f.ambiente?.ordem ?? 999999);
+      g.fotos.push(f);
+    }
+  }
+  for (const p of rdo.pendencias) {
+    if (p.ambiente_id) {
+      const g = getOrInit(p.ambiente_id, p.ambiente?.nome ?? "Ambiente removido", p.ambiente?.ordem ?? 999999);
+      g.pendencias.push(p);
+    }
+  }
+  for (const p of rdo.pontos_atencao) {
+    if (p.ambiente_id) {
+      const g = getOrInit(p.ambiente_id, p.ambiente?.nome ?? "Ambiente removido", p.ambiente?.ordem ?? 999999);
+      g.pontos.push(p);
+    }
+  }
+  for (const o of rdo.observacoes_ambiente) {
+    if (o.ambiente_id && (o.texto ?? "").trim() !== "") {
+      const g = getOrInit(o.ambiente_id, "Ambiente", 999999);
+      g.obs = o.texto;
+    }
+  }
+  // Fotos sem ambiente (legado)
+  const fotosSemAmb = rdo.fotos.filter((f) => f.ambiente_id == null);
+  const gruposAmbiente = Array.from(mapaAmb.values()).sort((a, b) => a.ordem - b.ordem);
+
   return (
     <div className="border-t border-nue-taupe bg-nue-offwhite/40 px-4 py-4">
       <div className="space-y-4">
@@ -564,11 +614,11 @@ function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
           </section>
         )}
 
-        {rdo.pendencias.length > 0 && (
+        {pendGerais.length > 0 && (
           <section>
-            <SectionLabel>Pendências</SectionLabel>
+            <SectionLabel>Pendências gerais</SectionLabel>
             <ul className="space-y-1.5">
-              {rdo.pendencias.map((p) => {
+              {pendGerais.map((p) => {
                 const s = PRIORIDADE_STYLES[p.prioridade];
                 return (
                   <li key={p.id} className="flex items-start gap-2 text-[14px] text-nue-black">
@@ -583,61 +633,73 @@ function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
           </section>
         )}
 
-        {rdo.pontos_atencao.length > 0 && (
+        {pontosGerais.length > 0 && (
           <section>
-            <SectionLabel>Pontos de atenção</SectionLabel>
+            <SectionLabel>Pontos de atenção gerais</SectionLabel>
             <ul className="list-disc space-y-1 pl-5 text-[14px] text-nue-black">
-              {rdo.pontos_atencao.map((p) => (
+              {pontosGerais.map((p) => (
                 <li key={p.id}>{p.descricao}</li>
               ))}
             </ul>
           </section>
         )}
 
-        {rdo.fotos.length > 0 && (() => {
-          // Agrupa por ambiente_id (null vai pro grupo "Fotos sem ambiente")
-          const grupos = new Map<string | null, typeof rdo.fotos>();
-          for (const f of rdo.fotos) {
-            const k = f.ambiente_id ?? null;
-            const arr = grupos.get(k) ?? [];
-            arr.push(f);
-            grupos.set(k, arr);
-          }
-          // Ordena ids por foto.ambiente.ordem (asc); null vai pro fim
-          const idsComFoto = Array.from(grupos.keys()).filter((k): k is string => k !== null);
-          idsComFoto.sort((a, b) => {
-            const fa = (grupos.get(a) ?? [])[0]?.ambiente?.ordem ?? 0;
-            const fb = (grupos.get(b) ?? [])[0]?.ambiente?.ordem ?? 0;
-            return fa - fb;
-          });
-          const ordemKeys: (string | null)[] = [...idsComFoto];
-          if (grupos.has(null)) ordemKeys.push(null);
-
-          return (
-            <section>
-              <SectionLabel>Fotos</SectionLabel>
-              <div className="space-y-3">
-                {ordemKeys.map((k) => {
-                  const grupo = grupos.get(k) ?? [];
-                  const nome =
-                    k === null
-                      ? "Fotos sem ambiente"
-                      : grupo[0]?.ambiente?.nome ?? "Sem ambiente";
-                  return (
-                    <div key={`grp:${k ?? "__sem__"}`}>
-                      <div
-                        className="mb-1 text-nue-graphite"
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 11,
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {nome}
-                      </div>
+        {gruposAmbiente.length > 0 && (
+          <section>
+            <SectionLabel>Ambientes</SectionLabel>
+            <div className="space-y-4">
+              {gruposAmbiente.map((g) => (
+                <div
+                  key={g.id}
+                  className="rounded-sm border border-nue-taupe bg-white px-3 py-3"
+                >
+                  <h4
+                    className="text-nue-black"
+                    style={{ fontFamily: "var(--font-display)", fontSize: 17 }}
+                  >
+                    {g.nome}
+                  </h4>
+                  {g.obs.trim() !== "" && (
+                    <p className="mt-2 whitespace-pre-line text-[14px] text-nue-black">
+                      {g.obs}
+                    </p>
+                  )}
+                  {g.pendencias.length > 0 && (
+                    <div className="mt-3">
+                      <SectionLabel>Pendências</SectionLabel>
+                      <ul className="space-y-1.5">
+                        {g.pendencias.map((p) => {
+                          const s = PRIORIDADE_STYLES[p.prioridade];
+                          return (
+                            <li
+                              key={p.id}
+                              className="flex items-start gap-2 text-[14px] text-nue-black"
+                            >
+                              <MiniBadge bg={s.bg} fg={s.fg}>
+                                {s.label}
+                              </MiniBadge>
+                              <span className="flex-1">{p.descricao}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  {g.pontos.length > 0 && (
+                    <div className="mt-3">
+                      <SectionLabel>Pontos de atenção</SectionLabel>
+                      <ul className="list-disc space-y-1 pl-5 text-[14px] text-nue-black">
+                        {g.pontos.map((p) => (
+                          <li key={p.id}>{p.descricao}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {g.fotos.length > 0 && (
+                    <div className="mt-3">
+                      <SectionLabel>Fotos</SectionLabel>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                        {grupo.map((f) => {
+                        {g.fotos.map((f) => {
                           const idxOriginal = rdo.fotos.findIndex((x) => x.id === f.id);
                           return (
                             <button
@@ -662,12 +724,43 @@ function ConteudoRdo({ rdo }: { rdo: RdoCompleto }) {
                         })}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })()}
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {fotosSemAmb.length > 0 && (
+          <section>
+            <SectionLabel>Fotos sem ambiente</SectionLabel>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {fotosSemAmb.map((f) => {
+                const idxOriginal = rdo.fotos.findIndex((x) => x.id === f.id);
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setLightboxIdx(idxOriginal)}
+                    className="group relative block aspect-square overflow-hidden rounded-[2px] border border-nue-taupe bg-nue-taupe"
+                  >
+                    <img
+                      src={f.url}
+                      alt={f.legenda || "Foto do RDO"}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                    {f.legenda && (
+                      <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-black/55 px-2 py-1 text-left text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                        {f.legenda}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* Rodapé com ações */}
