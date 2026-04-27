@@ -218,73 +218,60 @@ export async function sincronizarFilhos(args: {
     (p) => p.descricao.trim().length > 0,
   );
 
-  const ops: Promise<{ error: { message: string } | null }>[] = [
+  const delResults = await Promise.all([
     supabase.from("rdo_equipe_nue").delete().eq("rdo_id", rdo_id),
     supabase.from("rdo_terceiros").delete().eq("rdo_id", rdo_id),
     supabase.from("rdo_pendencias").delete().eq("rdo_id", rdo_id),
     supabase.from("rdo_pontos_atencao").delete().eq("rdo_id", rdo_id),
-  ];
-  const delResults = await Promise.all(ops);
+  ]);
   for (const r of delResults) {
     if (r.error) throw new Error(`Falha ao limpar filhos: ${r.error.message}`);
   }
 
-  const inserts: Promise<{ error: { message: string } | null }>[] = [];
-
   if (equipeFiltrada.length > 0) {
-    inserts.push(
-      supabase.from("rdo_equipe_nue").insert(
-        equipeFiltrada.map((e, i) => ({
-          rdo_id,
-          nome: e.nome.trim(),
-          funcao: e.funcao.trim(),
-          ordem: i,
-        })),
-      ),
+    const { error: e } = await supabase.from("rdo_equipe_nue").insert(
+      equipeFiltrada.map((e, i) => ({
+        rdo_id,
+        nome: e.nome.trim(),
+        funcao: e.funcao.trim(),
+        ordem: i,
+      })),
     );
+    if (e) throw new Error(`Falha ao salvar equipe: ${e.message}`);
   }
   if (terceirosFiltrados.length > 0) {
-    inserts.push(
-      supabase.from("rdo_terceiros").insert(
-        terceirosFiltrados.map((t, i) => ({
-          rdo_id,
-          nome: t.nome.trim(),
-          papel: t.papel.trim(),
-          ordem: i,
-        })),
-      ),
+    const { error: e } = await supabase.from("rdo_terceiros").insert(
+      terceirosFiltrados.map((t, i) => ({
+        rdo_id,
+        nome: t.nome.trim(),
+        papel: t.papel.trim(),
+        ordem: i,
+      })),
     );
+    if (e) throw new Error(`Falha ao salvar terceiros: ${e.message}`);
   }
   if (pendenciasFiltradas.length > 0) {
-    inserts.push(
-      supabase.from("rdo_pendencias").insert(
-        pendenciasFiltradas.map((p, i) => ({
-          rdo_id,
-          descricao: p.descricao.trim(),
-          prioridade: p.prioridade,
-          ordem: i,
-        })),
-      ),
+    const { error: e } = await supabase.from("rdo_pendencias").insert(
+      pendenciasFiltradas.map((p, i) => ({
+        rdo_id,
+        descricao: p.descricao.trim(),
+        prioridade: p.prioridade,
+        ordem: i,
+      })),
     );
+    if (e) throw new Error(`Falha ao salvar pendências: ${e.message}`);
   }
   if (pontosFiltrados.length > 0) {
-    inserts.push(
-      supabase.from("rdo_pontos_atencao").insert(
-        pontosFiltrados.map((p, i) => ({
-          rdo_id,
-          descricao: p.descricao.trim(),
-          ordem: i,
-        })),
-      ),
+    const { error: e } = await supabase.from("rdo_pontos_atencao").insert(
+      pontosFiltrados.map((p, i) => ({
+        rdo_id,
+        descricao: p.descricao.trim(),
+        ordem: i,
+      })),
     );
+    if (e) throw new Error(`Falha ao salvar pontos de atenção: ${e.message}`);
   }
-
-  if (inserts.length > 0) {
-    const insResults = await Promise.all(inserts);
-    for (const r of insResults) {
-      if (r.error) throw new Error(`Falha ao salvar filhos: ${r.error.message}`);
-    }
-  }
+}
 }
 
 /** Cria snapshot do RDO + filhos atual e insere em rdo_versoes. */
