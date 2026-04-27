@@ -1,31 +1,74 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
+import { fetchRdoCompleto, RdoNaoEncontradoError } from "@/lib/rdo";
+import { FormularioRdo } from "@/components/FormularioRdo";
 
 export const Route = createFileRoute("/rdo/$id/editar")({
-  component: RdoEditarPlaceholder,
+  component: EditarRdo,
 });
 
-function RdoEditarPlaceholder() {
+function EditarRdo() {
   const { id } = Route.useParams();
-  return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-3xl text-nue-black">Editar RDO</h1>
-        <p className="text-[15px] text-nue-graphite">
-          <span style={{ fontFamily: "var(--font-mono)" }} className="text-nue-black">
-            {id}
-          </span>
-        </p>
-      </header>
-      <div className="rounded-md border border-nue-taupe bg-white px-6 py-10 text-center text-sm text-nue-graphite">
-        Em construção
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["rdo-form", id],
+    queryFn: () => fetchRdoCompleto(id),
+    retry: (count, err) => !(err instanceof RdoNaoEncontradoError) && count < 2,
+  });
+
+  if (isLoading) return <Esqueleto />;
+
+  if (isError && error instanceof RdoNaoEncontradoError) {
+    return <RdoNaoEncontrado />;
+  }
+  if (isError) {
+    return (
+      <div className="rounded-md border border-[#8C3A2E]/30 bg-[#F1DDD8] px-4 py-3 text-sm text-[#8C3A2E]">
+        {error instanceof Error ? error.message : "Erro ao carregar RDO."}{" "}
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="ml-2 underline underline-offset-2"
+        >
+          Tentar novamente
+        </button>
       </div>
-      <div>
+    );
+  }
+
+  if (!data) return null;
+  return <FormularioRdo modo="editar" obra={data.obra} rdo={data.rdo} />;
+}
+
+function RdoNaoEncontrado() {
+  return (
+    <div className="mx-auto max-w-md py-16 text-center">
+      <h1 className="text-3xl text-nue-black">RDO não encontrado</h1>
+      <p className="mt-2 text-sm text-nue-graphite">
+        O RDO solicitado não existe ou foi removido.
+      </p>
+      <div className="mt-6">
         <Link
           to="/"
-          className="inline-flex h-9 items-center justify-center rounded-sm border border-nue-taupe bg-white px-4 text-sm text-nue-black transition-colors hover:bg-nue-taupe/40"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-sm bg-nue-black px-4 text-sm font-medium text-nue-offwhite transition-opacity hover:opacity-90"
         >
+          <ArrowLeft className="h-4 w-4" />
           Voltar para Obras
         </Link>
+      </div>
+    </div>
+  );
+}
+
+function Esqueleto() {
+  return (
+    <div className="space-y-4">
+      <div className="h-3 w-40 animate-pulse rounded-sm bg-nue-taupe/60" />
+      <div className="h-7 w-64 animate-pulse rounded-sm bg-nue-taupe/60" />
+      <div className="h-4 w-1/2 animate-pulse rounded-sm bg-nue-taupe/40" />
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="h-64 rounded-sm border border-nue-taupe bg-white lg:col-span-3" />
+        <div className="h-64 rounded-sm border border-nue-taupe bg-white lg:col-span-2" />
       </div>
     </div>
   );
