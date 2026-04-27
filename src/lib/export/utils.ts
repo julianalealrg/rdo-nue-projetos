@@ -191,10 +191,25 @@ export function agruparPorAmbiente(rdo: RdoCompleto): {
       g.pontos.push(p);
     }
   }
+  // Construir lookup de nomes a partir de relações já carregadas
+  const nomeLookup = new Map<string, { nome: string; ordem: number }>();
+  for (const f of rdo.fotos)
+    if (f.ambiente_id && f.ambiente)
+      nomeLookup.set(f.ambiente_id, { nome: f.ambiente.nome, ordem: f.ambiente.ordem });
+  for (const p of rdo.pendencias)
+    if (p.ambiente_id && p.ambiente)
+      nomeLookup.set(p.ambiente_id, { nome: p.ambiente.nome, ordem: p.ambiente.ordem });
+  for (const p of rdo.pontos_atencao)
+    if (p.ambiente_id && p.ambiente)
+      nomeLookup.set(p.ambiente_id, { nome: p.ambiente.nome, ordem: p.ambiente.ordem });
+
   for (const o of rdo.observacoes_ambiente) {
     if (o.ambiente_id && (o.texto ?? "").trim() !== "") {
-      const g = get(o.ambiente_id, "Ambiente", 999999);
+      const lk = nomeLookup.get(o.ambiente_id);
+      const g = get(o.ambiente_id, lk?.nome ?? "Ambiente removido", lk?.ordem ?? 999999);
       g.obs = o.texto;
+      // Atualizar nome se grupo já existia com placeholder
+      if (lk && g.nome === "Ambiente removido") g.nome = lk.nome;
     }
   }
   const grupos = Array.from(mapa.values()).sort((a, b) => a.ordem - b.ordem);
