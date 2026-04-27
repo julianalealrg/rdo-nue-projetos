@@ -1,11 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Plus, Trash2, X } from "lucide-react";
+import {
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  Eraser,
+  Loader2,
+  Maximize2,
+  MoveLeft,
+  MoveRight,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
+import SignatureCanvas from "react-signature-canvas";
 import { hojeRecife, horaAgoraRecife, horaAgoraRecifeFormatada } from "@/lib/datas";
-import type { ObraComSupervisor, RdoCompleto, CondicaoLocal, TipoVisita, Prioridade } from "@/lib/diario";
+import type { ObraComSupervisor, RdoCompleto, CondicaoLocal, TipoVisita, Prioridade, RdoFoto } from "@/lib/diario";
 import {
   atualizarRdoCampos,
   criarRdoInicial,
@@ -18,6 +31,18 @@ import {
   type PendenciaItem,
   type PontoAtencaoItem,
 } from "@/lib/rdo";
+import {
+  ArquivoMuitoGrandeError,
+  CATEGORIAS_FOTO,
+  type CategoriaFoto,
+  atualizarFotoCampos,
+  persistirOrdemFotos,
+  removerFoto,
+  uploadAssinatura,
+  uploadFoto,
+} from "@/lib/fotos";
+import { Lightbox } from "@/components/Lightbox";
+
 
 /* ---------------- Tipos ---------------- */
 
