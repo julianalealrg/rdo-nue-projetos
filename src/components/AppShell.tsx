@@ -27,7 +27,7 @@ function SidebarContent({
         <img
           src={logoUrl}
           alt="NUE Projetos"
-          className="h-8 w-auto"
+          className="h-12 w-auto"
           style={{ filter: "invert(1)" }}
         />
       </div>
