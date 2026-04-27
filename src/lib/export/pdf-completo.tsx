@@ -484,7 +484,6 @@ export function DocumentoPdf({
     <Document>
       <Page size="A4" style={styles.page}>
         <Capa obra={obra} rdos={rdos} escopo={escopo} rdoUnico={rdoUnico} logoDataUrl={logoDataUrl} />
-        <RodapePagina obra={obra} />
       </Page>
       {variant === "detalhado" ? (
         lista.map((rdo) => (
