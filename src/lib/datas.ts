@@ -3,6 +3,11 @@
  */
 const TZ = "America/Recife";
 
+const MESES_ABREV = [
+  "JAN", "FEV", "MAR", "ABR", "MAI", "JUN",
+  "JUL", "AGO", "SET", "OUT", "NOV", "DEZ",
+];
+
 function partsRecife(date: Date) {
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: TZ,
@@ -18,7 +23,6 @@ function partsRecife(date: Date) {
 }
 
 function diffDiasRecife(isoDate: string): number {
-  // isoDate: "yyyy-mm-dd" — interpretado como dia local em Recife.
   const hoje = partsRecife(new Date());
   const [y, m, d] = isoDate.split("-").map(Number);
   const a = Date.UTC(hoje.y, hoje.m - 1, hoje.d);
@@ -33,7 +37,6 @@ export function formatarDataRelativa(isoDate: string | null): string {
   if (dias === 1) return "ontem";
   if (dias > 1 && dias <= 7) return `há ${dias} dias`;
   if (dias < 0) {
-    // Data futura — mostra DD/MM/AAAA
     const [y, m, d] = isoDate.split("-");
     return `${d}/${m}/${y}`;
   }
@@ -45,4 +48,30 @@ export function formatarDataCurta(isoDate: string | null): string {
   if (!isoDate) return "—";
   const [y, m, d] = isoDate.split("-");
   return `${d}/${m}/${y}`;
+}
+
+/** Retorna { dia: "27", mesAno: "ABR 2026" } a partir de "yyyy-mm-dd". */
+export function partesDiaMesAno(isoDate: string): { dia: string; mesAno: string } {
+  const [y, m, d] = isoDate.split("-");
+  return {
+    dia: d,
+    mesAno: `${MESES_ABREV[Number(m) - 1]} ${y}`,
+  };
+}
+
+/** Formata "HH:MM:SS" -> "HHhMM". */
+export function formatarHora(time: string | null): string {
+  if (!time) return "";
+  const [h, m] = time.split(":");
+  return `${h}h${m}`;
+}
+
+/** "HHhMM até HHhMM" ou "HHhMM" se sem saída. */
+export function formatarIntervaloHorario(
+  chegada: string,
+  saida: string | null,
+): string {
+  const c = formatarHora(chegada);
+  if (!saida) return c;
+  return `${c} até ${formatarHora(saida)}`;
 }
