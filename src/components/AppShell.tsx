@@ -71,6 +71,7 @@ function SidebarContent({
 
 function getBreadcrumb(pathname: string): string {
   if (pathname.startsWith("/configuracoes")) return "Configurações";
+  if (pathname.startsWith("/obra/")) return "Obras / Diário";
   return "Obras";
 }
 
