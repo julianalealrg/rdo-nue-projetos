@@ -262,10 +262,54 @@ export function FormularioRdo(props: Props) {
     setDirty(true);
   }
 
+  /* -------- Operações de fotos -------- */
+
+  const marcarSalvando = useCallback(() => {
+    setSaveStatus({ kind: "saving" });
+  }, []);
+  const marcarSalvo = useCallback(() => {
+    setSaveStatus({ kind: "saved", hora: horaAgoraRecifeFormatada() });
+  }, []);
+  const marcarErro = useCallback((msg: string) => {
+    setSaveStatus({ kind: "error", msg });
+  }, []);
+
+  const ordemTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const agendarPersistirOrdem = useCallback((lista: RdoFoto[]) => {
+    if (ordemTimerRef.current) clearTimeout(ordemTimerRef.current);
+    ordemTimerRef.current = setTimeout(async () => {
+      marcarSalvando();
+      try {
+        await persistirOrdemFotos(lista);
+        marcarSalvo();
+      } catch (err) {
+        marcarErro(err instanceof Error ? err.message : "Erro");
+      }
+    }, 500);
+  }, [marcarSalvando, marcarSalvo, marcarErro]);
+
+  /* -------- Persistência da assinatura -------- */
+
+  async function salvarAssinaturaSeNecessario(rdoIdAtual: string): Promise<string | null> {
+    if (!sigPadRef.current || sigPadRef.current.isEmpty()) return null;
+    if (!sigDirtyRef.current) return null;
+    const canvas = sigPadRef.current.getCanvas();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/png"),
+    );
+    if (!blob) throw new Error("Falha ao gerar imagem da assinatura");
+    const url = await uploadAssinatura({ rdo_id: rdoIdAtual, blob });
+    setAssinaturaUrl(url);
+    setSubstituindoAssinatura(false);
+    sigDirtyRef.current = false;
+    return url;
+  }
+
   /* -------- Handlers de saída -------- */
 
   function tentarSair() {
-    if (dirty || saveStatus.kind === "saving") {
+    if (dirty || sigDirtyRef.current || saveStatus.kind === "saving") {
       setConfirmandoSair(true);
       return;
     }
@@ -276,6 +320,12 @@ export function FormularioRdo(props: Props) {
     if (rdoIdRef.current || podeIniciarRascunho(formRef.current)) {
       const id = await persistir();
       if (id) {
+        try {
+          await salvarAssinaturaSeNecessario(id);
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Erro ao salvar assinatura");
+          return;
+        }
         toast.success("Rascunho salvo");
         navigate({ to: "/obra/$id", params: { id: props.obra.id } });
         return;
@@ -285,6 +335,12 @@ export function FormularioRdo(props: Props) {
     }
     // sem nada para salvar — só sair
     navigate({ to: "/obra/$id", params: { id: props.obra.id } });
+  }
+
+  function destacarAssinaturaErro() {
+    setAssinaturaErroDestaque(true);
+    secaoAssinaturaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => setAssinaturaErroDestaque(false), 2000);
   }
 
   async function finalizar() {
@@ -319,14 +375,35 @@ export function FormularioRdo(props: Props) {
       return;
     }
     setErros({});
+
+    // Validação assinatura
+    const temAssinaturaPersistida = !!assinaturaUrl && !substituindoAssinatura;
+    const temTracoNovo =
+      !!sigPadRef.current && !sigPadRef.current.isEmpty();
+    if (!temAssinaturaPersistida && !temTracoNovo) {
+      toast.error("Desenhe a assinatura antes de finalizar o RDO");
+      destacarAssinaturaErro();
+      return;
+    }
+
     setFinalizando(true);
     const id = await persistir({ finalizado: true });
-    setFinalizando(false);
-    if (id) {
-      toast.success("RDO finalizado");
-      navigate({ to: "/rdo/$id", params: { id } });
+    if (!id) {
+      setFinalizando(false);
+      return;
     }
+    try {
+      await salvarAssinaturaSeNecessario(id);
+    } catch (err) {
+      setFinalizando(false);
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar assinatura");
+      return;
+    }
+    setFinalizando(false);
+    toast.success("RDO finalizado");
+    navigate({ to: "/rdo/$id", params: { id } });
   }
+
 
   /* -------- Render -------- */
 
