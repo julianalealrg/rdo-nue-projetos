@@ -322,3 +322,35 @@ export async function criarVersaoSnapshot(args: {
   });
   if (insErr) throw new Error(`Falha ao registrar versão: ${insErr.message}`);
 }
+
+export type RdoVersao = {
+  id: string;
+  rdo_id: string;
+  snapshot: Json;
+  nota_edicao: string;
+  editado_em: string;
+  editado_por: string | null;
+  editor: { id: string; nome: string; iniciais: string | null } | null;
+};
+
+export async function fetchVersoesRdo(rdoId: string): Promise<RdoVersao[]> {
+  const { data, error } = await supabase
+    .from("rdo_versoes")
+    .select("*, editor:supervisores!rdo_versoes_editado_por_fkey(id, nome, iniciais)")
+    .eq("rdo_id", rdoId)
+    .order("editado_em", { ascending: false });
+  if (error) throw new Error(`Falha ao carregar versões: ${error.message}`);
+  return ((data ?? []) as unknown as RdoVersao[]).map((v) => ({
+    ...v,
+    editor: v.editor ?? null,
+  }));
+}
+
+export async function countVersoesRdo(rdoId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("rdo_versoes")
+    .select("id", { count: "exact", head: true })
+    .eq("rdo_id", rdoId);
+  if (error) throw new Error(`Falha ao contar versões: ${error.message}`);
+  return count ?? 0;
+}
