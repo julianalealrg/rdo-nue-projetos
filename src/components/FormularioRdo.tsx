@@ -122,6 +122,22 @@ export function FormularioRdo(props: Props) {
     props.modo === "editar" ? props.rdo.fotos : [],
   );
 
+  // Ambientes da obra
+  const [ambientesObra, setAmbientesObra] = useState<
+    Awaited<ReturnType<typeof fetchAmbientesObra>>
+  >([]);
+  const recarregarAmbientes = useCallback(async () => {
+    try {
+      const lista = await fetchAmbientesObra(props.obra.id, true);
+      setAmbientesObra(lista);
+    } catch (e) {
+      console.error("Erro ao carregar ambientes da obra", e);
+    }
+  }, [props.obra.id]);
+  useEffect(() => {
+    void recarregarAmbientes();
+  }, [recarregarAmbientes]);
+
   // Assinatura
   const [assinaturaUrl, setAssinaturaUrl] = useState<string | null>(
     props.modo === "editar" ? props.rdo.assinatura_url : null,
