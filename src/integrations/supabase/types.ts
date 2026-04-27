@@ -14,16 +14,368 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      obras: {
+        Row: {
+          created_at: string
+          endereco: string
+          id: string
+          motivo_pausa: string
+          nome_cliente: string
+          observacoes_obra: string
+          status: Database["public"]["Enums"]["obra_status"]
+          supervisor_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endereco: string
+          id: string
+          motivo_pausa?: string
+          nome_cliente: string
+          observacoes_obra?: string
+          status?: Database["public"]["Enums"]["obra_status"]
+          supervisor_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endereco?: string
+          id?: string
+          motivo_pausa?: string
+          nome_cliente?: string
+          observacoes_obra?: string
+          status?: Database["public"]["Enums"]["obra_status"]
+          supervisor_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obras_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "supervisores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rdo_equipe_nue: {
+        Row: {
+          funcao: string
+          id: string
+          nome: string
+          ordem: number
+          rdo_id: string
+        }
+        Insert: {
+          funcao?: string
+          id?: string
+          nome: string
+          ordem?: number
+          rdo_id: string
+        }
+        Update: {
+          funcao?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          rdo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdo_equipe_nue_rdo_id_fkey"
+            columns: ["rdo_id"]
+            isOneToOne: false
+            referencedRelation: "rdos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rdo_fotos: {
+        Row: {
+          categoria: Database["public"]["Enums"]["categoria_foto"] | null
+          created_at: string
+          id: string
+          legenda: string
+          ordem: number
+          rdo_id: string
+          url: string
+        }
+        Insert: {
+          categoria?: Database["public"]["Enums"]["categoria_foto"] | null
+          created_at?: string
+          id?: string
+          legenda?: string
+          ordem?: number
+          rdo_id: string
+          url: string
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["categoria_foto"] | null
+          created_at?: string
+          id?: string
+          legenda?: string
+          ordem?: number
+          rdo_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdo_fotos_rdo_id_fkey"
+            columns: ["rdo_id"]
+            isOneToOne: false
+            referencedRelation: "rdos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rdo_pendencias: {
+        Row: {
+          descricao: string
+          id: string
+          ordem: number
+          prioridade: Database["public"]["Enums"]["prioridade_pendencia"]
+          rdo_id: string
+          resolvida_em: string | null
+        }
+        Insert: {
+          descricao: string
+          id?: string
+          ordem?: number
+          prioridade?: Database["public"]["Enums"]["prioridade_pendencia"]
+          rdo_id: string
+          resolvida_em?: string | null
+        }
+        Update: {
+          descricao?: string
+          id?: string
+          ordem?: number
+          prioridade?: Database["public"]["Enums"]["prioridade_pendencia"]
+          rdo_id?: string
+          resolvida_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdo_pendencias_rdo_id_fkey"
+            columns: ["rdo_id"]
+            isOneToOne: false
+            referencedRelation: "rdos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rdo_pontos_atencao: {
+        Row: {
+          descricao: string
+          id: string
+          ordem: number
+          rdo_id: string
+        }
+        Insert: {
+          descricao: string
+          id?: string
+          ordem?: number
+          rdo_id: string
+        }
+        Update: {
+          descricao?: string
+          id?: string
+          ordem?: number
+          rdo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdo_pontos_atencao_rdo_id_fkey"
+            columns: ["rdo_id"]
+            isOneToOne: false
+            referencedRelation: "rdos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rdo_terceiros: {
+        Row: {
+          id: string
+          nome: string
+          ordem: number
+          papel: string
+          rdo_id: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          ordem?: number
+          papel?: string
+          rdo_id: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          ordem?: number
+          papel?: string
+          rdo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdo_terceiros_rdo_id_fkey"
+            columns: ["rdo_id"]
+            isOneToOne: false
+            referencedRelation: "rdos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rdo_versoes: {
+        Row: {
+          editado_em: string
+          editado_por: string | null
+          id: string
+          nota_edicao: string
+          rdo_id: string
+          snapshot: Json
+        }
+        Insert: {
+          editado_em?: string
+          editado_por?: string | null
+          id?: string
+          nota_edicao?: string
+          rdo_id: string
+          snapshot: Json
+        }
+        Update: {
+          editado_em?: string
+          editado_por?: string | null
+          id?: string
+          nota_edicao?: string
+          rdo_id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdo_versoes_editado_por_fkey"
+            columns: ["editado_por"]
+            isOneToOne: false
+            referencedRelation: "supervisores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rdo_versoes_rdo_id_fkey"
+            columns: ["rdo_id"]
+            isOneToOne: false
+            referencedRelation: "rdos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rdos: {
+        Row: {
+          assinatura_url: string | null
+          condicao_local: Database["public"]["Enums"]["condicao_local"]
+          created_at: string
+          data: string
+          finalizado: boolean
+          hora_chegada: string
+          hora_saida: string | null
+          id: string
+          obra_id: string
+          proximos_passos: string
+          registros: string
+          supervisor_id: string | null
+          tipo_visita: Database["public"]["Enums"]["tipo_visita"]
+          updated_at: string
+        }
+        Insert: {
+          assinatura_url?: string | null
+          condicao_local: Database["public"]["Enums"]["condicao_local"]
+          created_at?: string
+          data: string
+          finalizado?: boolean
+          hora_chegada: string
+          hora_saida?: string | null
+          id: string
+          obra_id: string
+          proximos_passos?: string
+          registros?: string
+          supervisor_id?: string | null
+          tipo_visita: Database["public"]["Enums"]["tipo_visita"]
+          updated_at?: string
+        }
+        Update: {
+          assinatura_url?: string | null
+          condicao_local?: Database["public"]["Enums"]["condicao_local"]
+          created_at?: string
+          data?: string
+          finalizado?: boolean
+          hora_chegada?: string
+          hora_saida?: string | null
+          id?: string
+          obra_id?: string
+          proximos_passos?: string
+          registros?: string
+          supervisor_id?: string | null
+          tipo_visita?: Database["public"]["Enums"]["tipo_visita"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdos_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rdos_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "supervisores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisores: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          iniciais: string | null
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          iniciais?: string | null
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          iniciais?: string | null
+          nome?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      gerar_proximo_id_obra: { Args: never; Returns: string }
+      gerar_proximo_id_rdo: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      categoria_foto:
+        | "medicao"
+        | "antes"
+        | "durante"
+        | "depois"
+        | "ocorrencia"
+        | "detalhe"
+      condicao_local: "praticavel" | "parcialmente_praticavel" | "impraticavel"
+      obra_status: "ativa" | "concluida" | "pausada"
+      prioridade_pendencia: "alta" | "media" | "baixa"
+      tipo_visita: "medicao" | "supervisao_montagem"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +502,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      categoria_foto: [
+        "medicao",
+        "antes",
+        "durante",
+        "depois",
+        "ocorrencia",
+        "detalhe",
+      ],
+      condicao_local: ["praticavel", "parcialmente_praticavel", "impraticavel"],
+      obra_status: ["ativa", "concluida", "pausada"],
+      prioridade_pendencia: ["alta", "media", "baixa"],
+      tipo_visita: ["medicao", "supervisao_montagem"],
+    },
   },
 } as const
