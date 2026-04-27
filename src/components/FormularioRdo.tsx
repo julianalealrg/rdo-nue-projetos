@@ -1549,7 +1549,7 @@ function SecaoFotos({
               className="text-nue-graphite"
               style={{ fontFamily: "var(--font-sans)", fontSize: 13 }}
             >
-              Preencha a identificação para começar a anexar fotos e assinatura
+              {mensagemBloqueio}
             </p>
           </div>
         ) : (
