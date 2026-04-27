@@ -141,7 +141,7 @@ export async function atualizarFotoCampos(args: {
   legenda?: string;
   categoria?: CategoriaFoto | null;
 }): Promise<void> {
-  const patch: Record<string, unknown> = {};
+  const patch: { legenda?: string; categoria?: CategoriaFoto | null } = {};
   if (args.legenda !== undefined) patch.legenda = args.legenda;
   if (args.categoria !== undefined) patch.categoria = args.categoria;
   const { error } = await supabase
