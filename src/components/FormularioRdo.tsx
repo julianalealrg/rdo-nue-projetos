@@ -2545,6 +2545,7 @@ function CardAmbiente({
   onLegenda,
   onRetryUpload,
   fotosTodas,
+  semBorda = false,
 }: {
   nome: string;
   fotos: RdoFoto[];
@@ -2557,18 +2558,24 @@ function CardAmbiente({
   onLegenda: (foto: RdoFoto, valor: string) => void;
   onRetryUpload: (uploadId: string) => void;
   fotosTodas: RdoFoto[];
+  semBorda?: boolean;
 }) {
   const inputFileRef = useRef<HTMLInputElement | null>(null);
   const idxGlobal = (foto: RdoFoto) => fotosTodas.findIndex((f) => f.id === foto.id);
 
   return (
-    <div className="rounded-sm border border-nue-taupe bg-white" style={{ padding: "12px 14px" }}>
-      <div
-        className="text-nue-black"
-        style={{ fontFamily: "var(--font-display)", fontSize: 15 }}
-      >
-        {nome}
-      </div>
+    <div
+      className={semBorda ? "" : "rounded-sm border border-nue-taupe bg-white"}
+      style={semBorda ? undefined : { padding: "12px 14px" }}
+    >
+      {nome && (
+        <div
+          className="text-nue-black"
+          style={{ fontFamily: "var(--font-display)", fontSize: 15 }}
+        >
+          {nome}
+        </div>
+      )}
 
       <div className="mt-3">
         {(fotos.length > 0 || uploads.length > 0) && (
