@@ -202,7 +202,7 @@ export function Capa({ obra, rdos, escopo, rdoUnico, logoDataUrl }: CapaProps) {
         </View>
       </View>
       <View style={styles.divider} />
-      <Text style={styles.capaFooter}>Exportado em {nowRecife()}</Text>
+      <Text style={styles.capaExportadoEm}>Exportado em {nowRecife()}</Text>
     </View>
   );
 }
