@@ -407,6 +407,21 @@ export function FormularioRdo(props: Props) {
 
   /* -------- Render -------- */
 
+  const camposFaltantesIdentificacao = useMemo(() => {
+    const faltantes: string[] = [];
+    if (!form.data) faltantes.push("data");
+    if (!form.hora_chegada) faltantes.push("hora de chegada");
+    if (!props.obra.supervisor) faltantes.push("responsável pelo RDO");
+    if (!form.tipo_visita) faltantes.push("tipo de visita");
+    if (!form.condicao_local) faltantes.push("condição do local");
+    return faltantes;
+  }, [form.data, form.hora_chegada, form.tipo_visita, form.condicao_local, props.obra.supervisor]);
+
+  const mensagemBloqueio =
+    camposFaltantesIdentificacao.length > 0
+      ? `Preencha os campos obrigatórios da identificação para liberar esta seção: ${camposFaltantesIdentificacao.join(", ")}.`
+      : "Salvando identificação… aguarde para liberar esta seção.";
+
   return (
     <div className="pb-24">
       <CabecalhoForm
