@@ -40,6 +40,12 @@ import {
   uploadFoto,
 } from "@/lib/fotos";
 import { criarAmbiente, fetchAmbientesObra } from "@/lib/ambientes";
+import {
+  removerAmbienteDoRdo,
+  removerObservacaoAmbiente,
+  upsertObservacaoAmbiente,
+} from "@/lib/rdo";
+import type { RdoObservacaoAmbiente } from "@/lib/diario";
 import { Lightbox } from "@/components/Lightbox";
 
 
@@ -120,6 +126,16 @@ export function FormularioRdo(props: Props) {
   // Fotos: estado local refletindo o banco
   const [fotos, setFotos] = useState<RdoFoto[]>(
     props.modo === "editar" ? props.rdo.fotos : [],
+  );
+
+  // Observações por ambiente
+  const [observacoesAmbiente, setObservacoesAmbiente] = useState<RdoObservacaoAmbiente[]>(
+    props.modo === "editar" ? props.rdo.observacoes_ambiente : [],
+  );
+
+  // Ambientes "abertos manualmente" no RDO (fora dos derivados de fotos/obs/pend/pontos)
+  const [ambientesAbertosNoRdo, setAmbientesAbertosNoRdo] = useState<Set<string>>(
+    new Set(),
   );
 
   // Ambientes da obra
@@ -448,78 +464,90 @@ export function FormularioRdo(props: Props) {
         onRetry={agendarSaveImediato}
       />
 
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
-        {/* Coluna esquerda (60%) */}
-        <div className="space-y-4 lg:col-span-3">
-          <SecaoIdentificacao
-            form={form}
-            erros={erros}
-            onChange={atualizarCampo}
-            onCommit={agendarSaveImediato}
-            registrarRef={(k, el) => refsCampos.current.set(k, el)}
-          />
-          <SecaoRegistros
-            form={form}
-            erro={erros.registros}
-            onChange={atualizarCampo}
-            onBlurDebounced={agendarSaveDebounced}
-            onBlurImediato={agendarSaveImediato}
-            registrarRef={(el) => refsCampos.current.set("registros", el)}
-          />
-          <SecaoPendencias
-            itens={form.pendencias}
-            onChange={(novos) => {
-              atualizarCampo("pendencias", novos);
-            }}
-            onCommit={agendarSaveImediato}
-          />
-        </div>
+      <div className="mx-auto mt-6 w-full max-w-[880px] space-y-4 px-4 sm:px-0">
+        <SecaoIdentificacao
+          form={form}
+          erros={erros}
+          onChange={atualizarCampo}
+          onCommit={agendarSaveImediato}
+          registrarRef={(k, el) => refsCampos.current.set(k, el)}
+        />
 
-        {/* Coluna direita (40%) */}
-        <div className="space-y-4 lg:col-span-2">
-          <SecaoEquipe
-            form={form}
-            onChangeEquipe={(v) => atualizarCampo("equipe_nue", v)}
-            onChangeTerceiros={(v) => atualizarCampo("terceiros", v)}
-            onCommit={agendarSaveImediato}
-          />
-          <SecaoPontosAtencao
-            itens={form.pontos_atencao}
-            onChange={(v) => atualizarCampo("pontos_atencao", v)}
-            onCommit={agendarSaveImediato}
-          />
-          <SecaoFotos
-            rdoId={rdoId}
-            obraId={props.obra.id}
-            fotos={fotos}
-            setFotos={setFotos}
-            ambientesObra={ambientesObra}
-            onAmbientesChanged={() => void recarregarAmbientes()}
-            onSavingStart={marcarSalvando}
-            onSavingDone={marcarSalvo}
-            onSavingError={marcarErro}
-            agendarPersistirOrdem={agendarPersistirOrdem}
-            mensagemBloqueio={mensagemBloqueio}
-          />
-          <SecaoAssinatura
-            ref={secaoAssinaturaRef}
-            rdoId={rdoId}
-            assinaturaUrl={assinaturaUrl}
-            substituindo={substituindoAssinatura}
-            onSubstituir={() => setSubstituindoAssinatura(true)}
-            onCancelarSubstituir={() => {
-              setSubstituindoAssinatura(false);
-              sigPadRef.current?.clear();
-              sigDirtyRef.current = false;
-            }}
-            supervisor={props.obra.supervisor}
-            destacarErro={assinaturaErroDestaque}
-            sigPadRef={sigPadRef}
-            sigDirtyRef={sigDirtyRef}
-            onDirty={() => setDirty(true)}
-            mensagemBloqueio={mensagemBloqueio}
-          />
-        </div>
+        <SecaoEquipe
+          form={form}
+          onChangeEquipe={(v) => atualizarCampo("equipe_nue", v)}
+          onChangeTerceiros={(v) => atualizarCampo("terceiros", v)}
+          onCommit={agendarSaveImediato}
+        />
+
+        <SecaoRegistros
+          form={form}
+          erro={erros.registros}
+          onChange={atualizarCampo}
+          onBlurDebounced={agendarSaveDebounced}
+          onBlurImediato={agendarSaveImediato}
+          registrarRef={(el) => refsCampos.current.set("registros", el)}
+        />
+
+        <SecaoPendencias
+          itens={form.pendencias}
+          onChange={(novos) => atualizarCampo("pendencias", novos)}
+          onCommit={agendarSaveImediato}
+          ambienteId={null}
+          titulo="Pendências gerais"
+          vazioMsg="Nenhuma pendência geral registrada"
+        />
+
+        <SecaoPontosAtencao
+          itens={form.pontos_atencao}
+          onChange={(v) => atualizarCampo("pontos_atencao", v)}
+          onCommit={agendarSaveImediato}
+          ambienteId={null}
+          titulo="Pontos de atenção gerais"
+          vazioMsg="Nenhum ponto geral registrado"
+        />
+
+        <SecaoAmbientes
+          rdoId={rdoId}
+          obraId={props.obra.id}
+          ambientesObra={ambientesObra}
+          fotos={fotos}
+          setFotos={setFotos}
+          pendencias={form.pendencias}
+          setPendencias={(v) => atualizarCampo("pendencias", v)}
+          pontosAtencao={form.pontos_atencao}
+          setPontosAtencao={(v) => atualizarCampo("pontos_atencao", v)}
+          observacoesAmbiente={observacoesAmbiente}
+          setObservacoesAmbiente={setObservacoesAmbiente}
+          ambientesAbertosNoRdo={ambientesAbertosNoRdo}
+          setAmbientesAbertosNoRdo={setAmbientesAbertosNoRdo}
+          onAmbientesChanged={() => void recarregarAmbientes()}
+          onSavingStart={marcarSalvando}
+          onSavingDone={marcarSalvo}
+          onSavingError={marcarErro}
+          onCommit={agendarSaveImediato}
+          agendarPersistirOrdem={agendarPersistirOrdem}
+          mensagemBloqueio={mensagemBloqueio}
+        />
+
+        <SecaoAssinatura
+          ref={secaoAssinaturaRef}
+          rdoId={rdoId}
+          assinaturaUrl={assinaturaUrl}
+          substituindo={substituindoAssinatura}
+          onSubstituir={() => setSubstituindoAssinatura(true)}
+          onCancelarSubstituir={() => {
+            setSubstituindoAssinatura(false);
+            sigPadRef.current?.clear();
+            sigDirtyRef.current = false;
+          }}
+          supervisor={props.obra.supervisor}
+          destacarErro={assinaturaErroDestaque}
+          sigPadRef={sigPadRef}
+          sigDirtyRef={sigDirtyRef}
+          onDirty={() => setDirty(true)}
+          mensagemBloqueio={mensagemBloqueio}
+        />
       </div>
 
 
@@ -1406,7 +1434,666 @@ function DialogoConfirmar({
   );
 }
 
-/* ---------------- Seção 6 — Fotos ---------------- */
+/* ---------------- Seção 6 — Ambientes trabalhados ---------------- */
+
+function SecaoAmbientes({
+  rdoId,
+  obraId,
+  ambientesObra,
+  fotos,
+  setFotos,
+  pendencias,
+  setPendencias,
+  pontosAtencao,
+  setPontosAtencao,
+  observacoesAmbiente,
+  setObservacoesAmbiente,
+  ambientesAbertosNoRdo,
+  setAmbientesAbertosNoRdo,
+  onAmbientesChanged,
+  onSavingStart,
+  onSavingDone,
+  onSavingError,
+  onCommit,
+  agendarPersistirOrdem,
+  mensagemBloqueio,
+}: {
+  rdoId: string | null;
+  obraId: string;
+  ambientesObra: Ambiente[];
+  fotos: RdoFoto[];
+  setFotos: React.Dispatch<React.SetStateAction<RdoFoto[]>>;
+  pendencias: PendenciaItem[];
+  setPendencias: (v: PendenciaItem[]) => void;
+  pontosAtencao: PontoAtencaoItem[];
+  setPontosAtencao: (v: PontoAtencaoItem[]) => void;
+  observacoesAmbiente: RdoObservacaoAmbiente[];
+  setObservacoesAmbiente: React.Dispatch<React.SetStateAction<RdoObservacaoAmbiente[]>>;
+  ambientesAbertosNoRdo: Set<string>;
+  setAmbientesAbertosNoRdo: React.Dispatch<React.SetStateAction<Set<string>>>;
+  onAmbientesChanged: () => void;
+  onSavingStart: () => void;
+  onSavingDone: () => void;
+  onSavingError: (msg: string) => void;
+  onCommit: () => void;
+  agendarPersistirOrdem: (lista: RdoFoto[]) => void;
+  mensagemBloqueio: string;
+}) {
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [confirmandoRemoverFoto, setConfirmandoRemoverFoto] = useState<RdoFoto | null>(null);
+  const [confirmandoRemoverAmbiente, setConfirmandoRemoverAmbiente] = useState<{
+    id: string;
+    nome: string;
+  } | null>(null);
+  const [dropdownAberto, setDropdownAberto] = useState(false);
+  const [criandoNovo, setCriandoNovo] = useState(false);
+  const [nomeNovo, setNomeNovo] = useState("");
+  const [criandoBusy, setCriandoBusy] = useState(false);
+  const [ordemLocal, setOrdemLocal] = useState<string[]>([]);
+  const debounceLegendaRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const debounceObsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const desabilitado = !rdoId;
+
+  const ambientesAtivosMap = useMemo(() => {
+    const m = new Map<string, Ambiente>();
+    for (const a of ambientesObra) if (a.ativo) m.set(a.id, a);
+    return m;
+  }, [ambientesObra]);
+
+  // Ids de ambientes que aparecem no RDO (foto/obs/pend/ponto/abertos manualmente)
+  const idsNoRdo = useMemo(() => {
+    const s = new Set<string>(ambientesAbertosNoRdo);
+    for (const f of fotos) if (f.ambiente_id) s.add(f.ambiente_id);
+    for (const o of observacoesAmbiente)
+      if (o.ambiente_id && (o.texto ?? "").trim() !== "") s.add(o.ambiente_id);
+    for (const p of pendencias) if (p.ambiente_id) s.add(p.ambiente_id);
+    for (const p of pontosAtencao) if (p.ambiente_id) s.add(p.ambiente_id);
+    return s;
+  }, [ambientesAbertosNoRdo, fotos, observacoesAmbiente, pendencias, pontosAtencao]);
+
+  // Ordem visual: começa pela ordem da obra; ids fora da obra (legacy) vão pro fim
+  const blocosOrdenados = useMemo(() => {
+    type Bloco = { id: string; nome: string; ativo: boolean };
+    const out: Bloco[] = [];
+    const seen = new Set<string>();
+    for (const a of ambientesObra) {
+      if (idsNoRdo.has(a.id)) {
+        out.push({ id: a.id, nome: a.nome, ativo: a.ativo });
+        seen.add(a.id);
+      }
+    }
+    for (const id of idsNoRdo) {
+      if (seen.has(id)) continue;
+      const f = fotos.find((x) => x.ambiente_id === id);
+      out.push({ id, nome: f?.ambiente?.nome ?? "Ambiente removido", ativo: false });
+      seen.add(id);
+    }
+    // Aplica reordenação local (somente visual)
+    if (ordemLocal.length > 0) {
+      const map = new Map(out.map((b) => [b.id, b]));
+      const reorder: Bloco[] = [];
+      for (const id of ordemLocal) {
+        const b = map.get(id);
+        if (b) {
+          reorder.push(b);
+          map.delete(id);
+        }
+      }
+      for (const b of map.values()) reorder.push(b);
+      return reorder;
+    }
+    return out;
+  }, [ambientesObra, idsNoRdo, fotos, ordemLocal]);
+
+  const ambientesDisponiveisDropdown = useMemo(
+    () => ambientesObra.filter((a) => a.ativo && !idsNoRdo.has(a.id)),
+    [ambientesObra, idsNoRdo],
+  );
+
+  function moverBloco(id: string, delta: -1 | 1) {
+    const lista = blocosOrdenados.map((b) => b.id);
+    const idx = lista.indexOf(id);
+    if (idx === -1) return;
+    const novo = idx + delta;
+    if (novo < 0 || novo >= lista.length) return;
+    const arr = lista.slice();
+    const [it] = arr.splice(idx, 1);
+    arr.splice(novo, 0, it);
+    setOrdemLocal(arr);
+  }
+
+  function fotosDoAmbiente(id: string): RdoFoto[] {
+    return fotos.filter((f) => f.ambiente_id === id);
+  }
+
+  function obsDoAmbiente(id: string): string {
+    return observacoesAmbiente.find((o) => o.ambiente_id === id)?.texto ?? "";
+  }
+
+  function setObsLocal(ambiente_id: string, texto: string) {
+    setObservacoesAmbiente((arr) => {
+      const idx = arr.findIndex((o) => o.ambiente_id === ambiente_id);
+      if (idx === -1) {
+        return [
+          ...arr,
+          {
+            id: `tmp-${ambiente_id}`,
+            rdo_id: rdoId ?? "",
+            ambiente_id,
+            texto,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as RdoObservacaoAmbiente,
+        ];
+      }
+      const novo = arr.slice();
+      novo[idx] = { ...novo[idx], texto };
+      return novo;
+    });
+  }
+
+  function alterarObs(ambiente_id: string, texto: string) {
+    if (!rdoId) return;
+    setObsLocal(ambiente_id, texto);
+    const timers = debounceObsRef.current;
+    const t = timers.get(ambiente_id);
+    if (t) clearTimeout(t);
+    timers.set(
+      ambiente_id,
+      setTimeout(async () => {
+        timers.delete(ambiente_id);
+        onSavingStart();
+        try {
+          if (texto.trim() === "") {
+            await removerObservacaoAmbiente(rdoId, ambiente_id);
+          } else {
+            await upsertObservacaoAmbiente(rdoId, ambiente_id, texto);
+          }
+          onSavingDone();
+        } catch (err) {
+          onSavingError(err instanceof Error ? err.message : "Erro");
+        }
+      }, 800),
+    );
+  }
+
+  async function processarArquivos(files: FileList | File[], ambiente_id: string) {
+    if (!rdoId) return;
+    const arr = Array.from(files);
+    for (const file of arr) {
+      const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      setUploads((u) => [
+        ...u,
+        { id: tempId, nome: file.name, status: "uploading", progresso: 10, file, ambiente_id },
+      ]);
+      onSavingStart();
+      try {
+        const progT = setInterval(() => {
+          setUploads((u) =>
+            u.map((x) => (x.id === tempId && x.progresso < 85 ? { ...x, progresso: x.progresso + 10 } : x)),
+          );
+        }, 250);
+        const novaFotoBase = await uploadFoto({
+          file,
+          obra_id: obraId,
+          rdo_id: rdoId,
+          ordem: fotos.length + uploads.length,
+          ambiente_id,
+        });
+        clearInterval(progT);
+        const ambientePick = ambientesAtivosMap.get(ambiente_id) ?? null;
+        const novaFoto: RdoFoto = {
+          ...novaFotoBase,
+          ambiente: ambientePick
+            ? { id: ambientePick.id, nome: ambientePick.nome, ordem: ambientePick.ordem, ativo: ambientePick.ativo }
+            : null,
+        };
+        setUploads((u) => u.filter((x) => x.id !== tempId));
+        setFotos((f) => [...f, novaFoto]);
+        onSavingDone();
+      } catch (err) {
+        if (err instanceof ArquivoMuitoGrandeError) {
+          toast.error(`Arquivo "${err.nomeArquivo}" excede 10MB e foi recusado`);
+          setUploads((u) => u.filter((x) => x.id !== tempId));
+        } else {
+          const msg = err instanceof Error ? err.message : "Erro";
+          setUploads((u) => u.map((x) => (x.id === tempId ? { ...x, status: "erro", erro: msg } : x)));
+          onSavingError(msg);
+        }
+      }
+    }
+  }
+
+  async function moverFoto(idGlobal: string, delta: -1 | 1) {
+    const idx = fotos.findIndex((f) => f.id === idGlobal);
+    if (idx === -1) return;
+    const novo = idx + delta;
+    if (novo < 0 || novo >= fotos.length) return;
+    const lista = fotos.slice();
+    const [item] = lista.splice(idx, 1);
+    lista.splice(novo, 0, item);
+    setFotos(lista);
+    agendarPersistirOrdem(lista);
+  }
+
+  async function confirmarRemoverFoto() {
+    const foto = confirmandoRemoverFoto;
+    if (!foto) return;
+    setConfirmandoRemoverFoto(null);
+    const original = fotos;
+    setFotos((f) => f.filter((x) => x.id !== foto.id));
+    onSavingStart();
+    try {
+      await removerFoto(foto);
+      onSavingDone();
+    } catch (err) {
+      setFotos(original);
+      onSavingError(err instanceof Error ? err.message : "Erro");
+      toast.error("Não foi possível remover a foto");
+    }
+  }
+
+  function alterarLegenda(foto: RdoFoto, valor: string) {
+    setFotos((f) => f.map((x) => (x.id === foto.id ? { ...x, legenda: valor } : x)));
+    const timers = debounceLegendaRef.current;
+    const t = timers.get(foto.id);
+    if (t) clearTimeout(t);
+    timers.set(
+      foto.id,
+      setTimeout(async () => {
+        timers.delete(foto.id);
+        onSavingStart();
+        try {
+          await atualizarLegendaFoto(foto.id, valor);
+          onSavingDone();
+        } catch (err) {
+          onSavingError(err instanceof Error ? err.message : "Erro");
+        }
+      }, 800),
+    );
+  }
+
+  function reTentarUpload(uploadId: string) {
+    const item = uploads.find((u) => u.id === uploadId);
+    if (!item || !item.file || !item.ambiente_id) return;
+    setUploads((u) => u.filter((x) => x.id !== uploadId));
+    processarArquivos([item.file], item.ambiente_id);
+  }
+
+  async function criarNovoAmbiente() {
+    const nome = nomeNovo.trim();
+    if (!nome || criandoBusy) return;
+    setCriandoBusy(true);
+    try {
+      const novo = await criarAmbiente(obraId, nome);
+      setAmbientesAbertosNoRdo((s) => new Set(s).add(novo.id));
+      setNomeNovo("");
+      setCriandoNovo(false);
+      setDropdownAberto(false);
+      onAmbientesChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao criar ambiente");
+    } finally {
+      setCriandoBusy(false);
+    }
+  }
+
+  async function confirmarRemoverAmbiente() {
+    const alvo = confirmandoRemoverAmbiente;
+    if (!alvo || !rdoId) return;
+    setConfirmandoRemoverAmbiente(null);
+    onSavingStart();
+    try {
+      await removerAmbienteDoRdo({ rdo_id: rdoId, ambiente_id: alvo.id });
+      // Limpa estado local
+      setFotos((f) => f.filter((x) => x.ambiente_id !== alvo.id));
+      setObservacoesAmbiente((arr) => arr.filter((o) => o.ambiente_id !== alvo.id));
+      setPendencias(pendencias.filter((p) => p.ambiente_id !== alvo.id));
+      setPontosAtencao(pontosAtencao.filter((p) => p.ambiente_id !== alvo.id));
+      setAmbientesAbertosNoRdo((s) => {
+        const novo = new Set(s);
+        novo.delete(alvo.id);
+        return novo;
+      });
+      setOrdemLocal((arr) => arr.filter((id) => id !== alvo.id));
+      onSavingDone();
+      onCommit();
+    } catch (err) {
+      onSavingError(err instanceof Error ? err.message : "Erro");
+      toast.error("Não foi possível remover o ambiente do RDO");
+    }
+  }
+
+  function contarConteudoAmbiente(id: string): {
+    fotos: number;
+    pendencias: number;
+    pontos: number;
+    obs: boolean;
+  } {
+    return {
+      fotos: fotos.filter((f) => f.ambiente_id === id).length,
+      pendencias: pendencias.filter((p) => p.ambiente_id === id).length,
+      pontos: pontosAtencao.filter((p) => p.ambiente_id === id).length,
+      obs: (observacoesAmbiente.find((o) => o.ambiente_id === id)?.texto ?? "").trim() !== "",
+    };
+  }
+
+  return (
+    <CardSecao titulo={`Ambientes trabalhados (${blocosOrdenados.length})`}>
+      {desabilitado ? (
+        <p className="text-sm text-nue-graphite">{mensagemBloqueio}</p>
+      ) : (
+        <div className="space-y-4">
+          {blocosOrdenados.length === 0 && (
+            <p className="text-sm text-nue-graphite">
+              Nenhum ambiente trabalhado neste RDO. Adicione um abaixo para começar.
+            </p>
+          )}
+
+          {blocosOrdenados.map((bloco, i) => {
+            const isPrim = i === 0;
+            const isUlt = i === blocosOrdenados.length - 1;
+            return (
+              <div
+                key={`bloco:${bloco.id}`}
+                className="rounded-sm border border-nue-taupe bg-white"
+                style={{ padding: "14px 16px" }}
+              >
+                <header className="flex items-center justify-between gap-2">
+                  <h3
+                    className="text-nue-black"
+                    style={{ fontFamily: "var(--font-display)", fontSize: 17 }}
+                  >
+                    {bloco.nome}
+                    {!bloco.ativo && (
+                      <span
+                        className="ml-2 text-[10px] uppercase text-nue-graphite"
+                        style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}
+                      >
+                        inativo
+                      </span>
+                    )}
+                  </h3>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moverBloco(bloco.id, -1)}
+                      disabled={isPrim}
+                      aria-label="Subir"
+                      className="flex h-7 w-7 items-center justify-center rounded-sm text-nue-graphite hover:bg-nue-taupe/40 disabled:opacity-30"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moverBloco(bloco.id, 1)}
+                      disabled={isUlt}
+                      aria-label="Descer"
+                      className="flex h-7 w-7 items-center justify-center rounded-sm text-nue-graphite hover:bg-nue-taupe/40 disabled:opacity-30"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setConfirmandoRemoverAmbiente({ id: bloco.id, nome: bloco.nome })
+                      }
+                      className="ml-1 inline-flex items-center gap-1 rounded-sm border border-nue-taupe px-2 py-1 text-[12px] text-[#8C3A2E] hover:bg-nue-taupe/40"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remover do RDO
+                    </button>
+                  </div>
+                </header>
+
+                {/* Observações */}
+                <div className="mt-3">
+                  <Label htmlFor={`obs-${bloco.id}`}>Observações</Label>
+                  <textarea
+                    id={`obs-${bloco.id}`}
+                    rows={4}
+                    value={obsDoAmbiente(bloco.id)}
+                    onChange={(e) => alterarObs(bloco.id, e.target.value)}
+                    placeholder={`Observações sobre ${bloco.nome}`}
+                    className="block w-full rounded-sm border border-nue-taupe bg-white px-3 py-2 text-sm text-nue-black focus:outline-none focus:border-nue-graphite"
+                  />
+                </div>
+
+                {/* Fotos */}
+                <div className="mt-4">
+                  <Label>Fotos</Label>
+                  <CardAmbiente
+                    nome=""
+                    fotos={fotosDoAmbiente(bloco.id)}
+                    uploads={uploads.filter((u) => u.ambiente_id === bloco.id)}
+                    onAdicionarFotos={(files) => processarArquivos(files, bloco.id)}
+                    onAbrirFoto={(foto) => {
+                      const idx = fotos.findIndex((f) => f.id === foto.id);
+                      if (idx !== -1) setLightboxIdx(idx);
+                    }}
+                    onMoverEsquerda={(foto) => moverFoto(foto.id, -1)}
+                    onMoverDireita={(foto) => moverFoto(foto.id, 1)}
+                    onRemoverFoto={(foto) => setConfirmandoRemoverFoto(foto)}
+                    onLegenda={alterarLegenda}
+                    onRetryUpload={reTentarUpload}
+                    fotosTodas={fotos}
+                    semBorda
+                  />
+                </div>
+
+                {/* Pendências */}
+                <div className="mt-4">
+                  <Label>Pendências</Label>
+                  <SecaoPendencias
+                    itens={pendencias}
+                    onChange={setPendencias}
+                    onCommit={onCommit}
+                    ambienteId={bloco.id}
+                    comoCard={false}
+                    vazioMsg="Nenhuma pendência neste ambiente"
+                    labelAdicionar="Adicionar pendência"
+                  />
+                </div>
+
+                {/* Pontos de atenção */}
+                <div className="mt-4">
+                  <Label>Pontos de atenção</Label>
+                  <SecaoPontosAtencao
+                    itens={pontosAtencao}
+                    onChange={setPontosAtencao}
+                    onCommit={onCommit}
+                    ambienteId={bloco.id}
+                    comoCard={false}
+                    vazioMsg="Nenhum ponto neste ambiente"
+                    labelAdicionar="Adicionar ponto de atenção"
+                  />
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Botão adicionar ambiente */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setDropdownAberto((v) => !v);
+                setCriandoNovo(false);
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-sm border border-dashed border-nue-taupe bg-white py-3 text-sm text-nue-black transition-colors hover:bg-nue-taupe/40"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar ambiente a este RDO
+            </button>
+            {dropdownAberto && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => {
+                    setDropdownAberto(false);
+                    setCriandoNovo(false);
+                  }}
+                  aria-hidden
+                />
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-sm border border-nue-taupe bg-white shadow-md">
+                  <ul className="max-h-64 overflow-y-auto py-1">
+                    {ambientesDisponiveisDropdown.length === 0 && !criandoNovo && (
+                      <li
+                        className="px-3 py-2 text-[12px] text-nue-graphite"
+                        style={{ fontFamily: "var(--font-mono)" }}
+                      >
+                        Todos os ambientes ativos já estão neste RDO.
+                      </li>
+                    )}
+                    {ambientesDisponiveisDropdown.map((a) => (
+                      <li key={a.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAmbientesAbertosNoRdo((s) => new Set(s).add(a.id));
+                            setDropdownAberto(false);
+                          }}
+                          className="block w-full px-3 py-2 text-left text-sm text-nue-black hover:bg-nue-taupe/40"
+                        >
+                          {a.nome}
+                        </button>
+                      </li>
+                    ))}
+                    <li className="border-t border-nue-taupe">
+                      {!criandoNovo ? (
+                        <button
+                          type="button"
+                          onClick={() => setCriandoNovo(true)}
+                          className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-sm text-nue-black hover:bg-nue-taupe/40"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Cadastrar novo ambiente
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1 px-2 py-2">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={nomeNovo}
+                            onChange={(e) => setNomeNovo(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                criarNovoAmbiente();
+                              } else if (e.key === "Escape") {
+                                setCriandoNovo(false);
+                                setNomeNovo("");
+                              }
+                            }}
+                            placeholder="Ex: Cozinha"
+                            className="h-8 flex-1 rounded-sm border border-nue-taupe bg-white px-2 text-sm text-nue-black focus:outline-none focus:border-nue-graphite"
+                          />
+                          <button
+                            type="button"
+                            onClick={criarNovoAmbiente}
+                            disabled={!nomeNovo.trim() || criandoBusy}
+                            className="h-8 rounded-sm bg-nue-black px-3 text-[12px] font-medium text-nue-offwhite hover:opacity-90 disabled:opacity-40"
+                          >
+                            {criandoBusy ? "..." : "Criar"}
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  </ul>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {lightboxIdx !== null && (
+        <Lightbox
+          fotos={fotos}
+          indiceInicial={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+        />
+      )}
+
+      {confirmandoRemoverFoto && (
+        <DialogoSimples
+          titulo="Remover esta foto?"
+          confirmLabel="Remover"
+          onCancelar={() => setConfirmandoRemoverFoto(null)}
+          onConfirmar={confirmarRemoverFoto}
+        />
+      )}
+
+      {confirmandoRemoverAmbiente && (() => {
+        const c = contarConteudoAmbiente(confirmandoRemoverAmbiente.id);
+        const partes: string[] = [];
+        partes.push(`${c.fotos} ${c.fotos === 1 ? "foto" : "fotos"}`);
+        partes.push(`${c.pendencias} ${c.pendencias === 1 ? "pendência" : "pendências"}`);
+        partes.push(`${c.pontos} ${c.pontos === 1 ? "ponto de atenção" : "pontos de atenção"}`);
+        const obsTxt = c.obs ? " e a observação" : "";
+        return (
+          <DialogoSimples
+            titulo={`Remover ambiente "${confirmandoRemoverAmbiente.nome}" deste RDO?`}
+            mensagem={`Isso vai apagar ${partes.join(", ")}${obsTxt} registrados neste RDO. Outros RDOs não são afetados.`}
+            confirmLabel="Remover do RDO"
+            onCancelar={() => setConfirmandoRemoverAmbiente(null)}
+            onConfirmar={confirmarRemoverAmbiente}
+          />
+        );
+      })()}
+    </CardSecao>
+  );
+}
+
+function DialogoSimples({
+  titulo,
+  mensagem,
+  confirmLabel,
+  onCancelar,
+  onConfirmar,
+}: {
+  titulo: string;
+  mensagem?: string;
+  confirmLabel: string;
+  onCancelar: () => void;
+  onConfirmar: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="absolute inset-0 bg-nue-black/60" onClick={onCancelar} />
+      <div className="relative w-full max-w-[420px] rounded-md bg-white p-5 shadow-lg">
+        <h3 className="text-lg text-nue-black" style={{ fontFamily: "var(--font-display)" }}>
+          {titulo}
+        </h3>
+        {mensagem && <p className="mt-2 text-sm text-nue-black">{mensagem}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancelar}
+            className="h-9 rounded-sm border border-nue-taupe bg-white px-4 text-sm hover:bg-nue-taupe/40"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={onConfirmar}
+            className="h-9 rounded-sm bg-[#8C3A2E] px-4 text-sm font-medium text-white hover:opacity-90"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Seção 7 — Fotos (legado, não usada) ---------------- */
 
 type UploadItem = {
   id: string;
@@ -1858,6 +2545,7 @@ function CardAmbiente({
   onLegenda,
   onRetryUpload,
   fotosTodas,
+  semBorda = false,
 }: {
   nome: string;
   fotos: RdoFoto[];
@@ -1870,18 +2558,24 @@ function CardAmbiente({
   onLegenda: (foto: RdoFoto, valor: string) => void;
   onRetryUpload: (uploadId: string) => void;
   fotosTodas: RdoFoto[];
+  semBorda?: boolean;
 }) {
   const inputFileRef = useRef<HTMLInputElement | null>(null);
   const idxGlobal = (foto: RdoFoto) => fotosTodas.findIndex((f) => f.id === foto.id);
 
   return (
-    <div className="rounded-sm border border-nue-taupe bg-white" style={{ padding: "12px 14px" }}>
-      <div
-        className="text-nue-black"
-        style={{ fontFamily: "var(--font-display)", fontSize: 15 }}
-      >
-        {nome}
-      </div>
+    <div
+      className={semBorda ? "" : "rounded-sm border border-nue-taupe bg-white"}
+      style={semBorda ? undefined : { padding: "12px 14px" }}
+    >
+      {nome && (
+        <div
+          className="text-nue-black"
+          style={{ fontFamily: "var(--font-display)", fontSize: 15 }}
+        >
+          {nome}
+        </div>
+      )}
 
       <div className="mt-3">
         {(fotos.length > 0 || uploads.length > 0) && (

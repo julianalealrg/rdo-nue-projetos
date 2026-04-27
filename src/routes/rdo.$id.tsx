@@ -249,77 +249,216 @@ function DetalheRdoView({
           </CardSecao>
         )}
 
-        {rdo.pendencias.length > 0 && (
-          <CardSecao label="Pendências">
-            <ul className="space-y-2">
-              {rdo.pendencias.map((p) => {
-                const s = PRIORIDADE_STYLES[p.prioridade];
-                return (
-                  <li key={p.id} className="flex items-start gap-2.5">
-                    <MiniBadge bg={s.bg} fg={s.fg}>
-                      {s.label}
-                    </MiniBadge>
-                    <span className="text-[14px] text-nue-black">{p.descricao}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </CardSecao>
-        )}
+        {(() => {
+          const pendGerais = rdo.pendencias.filter((p) => p.ambiente_id == null);
+          const pontosGerais = rdo.pontos_atencao.filter((p) => p.ambiente_id == null);
+          return (
+            <>
+              {pendGerais.length > 0 && (
+                <CardSecao label="Pendências gerais">
+                  <ul className="space-y-2">
+                    {pendGerais.map((p) => {
+                      const s = PRIORIDADE_STYLES[p.prioridade];
+                      return (
+                        <li key={p.id} className="flex items-start gap-2.5">
+                          <MiniBadge bg={s.bg} fg={s.fg}>
+                            {s.label}
+                          </MiniBadge>
+                          <span className="text-[14px] text-nue-black">{p.descricao}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </CardSecao>
+              )}
 
-        {rdo.pontos_atencao.length > 0 && (
-          <CardSecao label="Pontos de atenção">
-            <ul className="list-disc space-y-1.5 pl-5 text-[14px] text-nue-black">
-              {rdo.pontos_atencao.map((p) => (
-                <li key={p.id}>{p.descricao}</li>
-              ))}
-            </ul>
-          </CardSecao>
-        )}
+              {pontosGerais.length > 0 && (
+                <CardSecao label="Pontos de atenção gerais">
+                  <ul className="list-disc space-y-1.5 pl-5 text-[14px] text-nue-black">
+                    {pontosGerais.map((p) => (
+                      <li key={p.id}>{p.descricao}</li>
+                    ))}
+                  </ul>
+                </CardSecao>
+              )}
+            </>
+          );
+        })()}
 
-        {rdo.fotos.length > 0 && (
-          <CardSecao label={`Fotos (${rdo.fotos.length})`}>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {rdo.fotos.map((f, i) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setLightboxIdx(i)}
-                  className="group relative block overflow-hidden rounded-sm border border-nue-taupe text-left"
-                >
-                  <div className="aspect-square w-full overflow-hidden bg-nue-taupe/20">
-                    <img
-                      src={f.url}
-                      alt={f.legenda || "Foto"}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  {f.ambiente?.nome && (
-                    <span
-                      className="absolute left-1.5 top-1.5 rounded-sm bg-nue-black/70 px-1.5 py-0.5 text-[10px] uppercase text-nue-offwhite"
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        letterSpacing: "0.06em",
-                      }}
-                    >
-                      {f.ambiente.nome}
-                    </span>
-                  )}
-                  {f.legenda && (
+        {(() => {
+          type GrupoAmb = {
+            id: string;
+            nome: string;
+            ordem: number;
+            fotos: typeof rdo.fotos;
+            pendencias: typeof rdo.pendencias;
+            pontos: typeof rdo.pontos_atencao;
+            obs: string;
+          };
+          const mapa = new Map<string, GrupoAmb>();
+          function getOrInit(id: string, nome: string, ordem: number): GrupoAmb {
+            let g = mapa.get(id);
+            if (!g) {
+              g = { id, nome, ordem, fotos: [], pendencias: [], pontos: [], obs: "" };
+              mapa.set(id, g);
+            }
+            return g;
+          }
+          for (const f of rdo.fotos)
+            if (f.ambiente_id) {
+              const g = getOrInit(f.ambiente_id, f.ambiente?.nome ?? "Ambiente removido", f.ambiente?.ordem ?? 999999);
+              g.fotos.push(f);
+            }
+          for (const p of rdo.pendencias)
+            if (p.ambiente_id) {
+              const g = getOrInit(p.ambiente_id, p.ambiente?.nome ?? "Ambiente removido", p.ambiente?.ordem ?? 999999);
+              g.pendencias.push(p);
+            }
+          for (const p of rdo.pontos_atencao)
+            if (p.ambiente_id) {
+              const g = getOrInit(p.ambiente_id, p.ambiente?.nome ?? "Ambiente removido", p.ambiente?.ordem ?? 999999);
+              g.pontos.push(p);
+            }
+          for (const o of rdo.observacoes_ambiente)
+            if (o.ambiente_id && (o.texto ?? "").trim() !== "") {
+              const g = getOrInit(o.ambiente_id, "Ambiente", 999999);
+              g.obs = o.texto;
+            }
+          const grupos = Array.from(mapa.values()).sort((a, b) => a.ordem - b.ordem);
+          const fotosSemAmb = rdo.fotos.filter((f) => f.ambiente_id == null);
+
+          return (
+            <>
+              {grupos.map((g) => (
+                <CardSecao key={g.id} label={g.nome}>
+                  {g.obs.trim() !== "" && (
                     <p
-                      className="truncate px-1.5 py-1 text-[11px] text-nue-graphite group-hover:whitespace-normal group-hover:text-nue-black"
-                      style={{ fontFamily: "var(--font-mono)" }}
-                      title={f.legenda}
+                      className="whitespace-pre-wrap text-[15px] text-nue-black"
+                      style={{ lineHeight: 1.6 }}
                     >
-                      {f.legenda}
+                      {g.obs}
                     </p>
                   )}
-                </button>
+                  {g.pendencias.length > 0 && (
+                    <div className={g.obs.trim() !== "" ? "mt-4" : ""}>
+                      <h4
+                        className="mb-2 text-[11px] uppercase text-nue-graphite"
+                        style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.08em" }}
+                      >
+                        Pendências
+                      </h4>
+                      <ul className="space-y-2">
+                        {g.pendencias.map((p) => {
+                          const s = PRIORIDADE_STYLES[p.prioridade];
+                          return (
+                            <li key={p.id} className="flex items-start gap-2.5">
+                              <MiniBadge bg={s.bg} fg={s.fg}>
+                                {s.label}
+                              </MiniBadge>
+                              <span className="text-[14px] text-nue-black">{p.descricao}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  {g.pontos.length > 0 && (
+                    <div className="mt-4">
+                      <h4
+                        className="mb-2 text-[11px] uppercase text-nue-graphite"
+                        style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.08em" }}
+                      >
+                        Pontos de atenção
+                      </h4>
+                      <ul className="list-disc space-y-1.5 pl-5 text-[14px] text-nue-black">
+                        {g.pontos.map((p) => (
+                          <li key={p.id}>{p.descricao}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {g.fotos.length > 0 && (
+                    <div className="mt-4">
+                      <h4
+                        className="mb-2 text-[11px] uppercase text-nue-graphite"
+                        style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.08em" }}
+                      >
+                        Fotos
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                        {g.fotos.map((f) => {
+                          const i = rdo.fotos.findIndex((x) => x.id === f.id);
+                          return (
+                            <button
+                              key={f.id}
+                              type="button"
+                              onClick={() => setLightboxIdx(i)}
+                              className="group relative block overflow-hidden rounded-sm border border-nue-taupe text-left"
+                            >
+                              <div className="aspect-square w-full overflow-hidden bg-nue-taupe/20">
+                                <img
+                                  src={f.url}
+                                  alt={f.legenda || "Foto"}
+                                  loading="lazy"
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                              {f.legenda && (
+                                <p
+                                  className="truncate px-1.5 py-1 text-[11px] text-nue-graphite"
+                                  style={{ fontFamily: "var(--font-mono)" }}
+                                  title={f.legenda}
+                                >
+                                  {f.legenda}
+                                </p>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </CardSecao>
               ))}
-            </div>
-          </CardSecao>
-        )}
+
+              {fotosSemAmb.length > 0 && (
+                <CardSecao label={`Fotos sem ambiente (${fotosSemAmb.length})`}>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    {fotosSemAmb.map((f) => {
+                      const i = rdo.fotos.findIndex((x) => x.id === f.id);
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setLightboxIdx(i)}
+                          className="group relative block overflow-hidden rounded-sm border border-nue-taupe text-left"
+                        >
+                          <div className="aspect-square w-full overflow-hidden bg-nue-taupe/20">
+                            <img
+                              src={f.url}
+                              alt={f.legenda || "Foto"}
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          {f.legenda && (
+                            <p
+                              className="truncate px-1.5 py-1 text-[11px] text-nue-graphite"
+                              style={{ fontFamily: "var(--font-mono)" }}
+                              title={f.legenda}
+                            >
+                              {f.legenda}
+                            </p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CardSecao>
+              )}
+            </>
+          );
+        })()}
 
         <CardSecao label="Assinatura do supervisor">
           {rdo.assinatura_url ? (
