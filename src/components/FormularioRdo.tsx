@@ -1109,33 +1109,52 @@ function SecaoPendencias({
   itens,
   onChange,
   onCommit,
+  ambienteId = null,
+  titulo = "Pendências",
+  vazioMsg = "Nenhuma pendência registrada",
+  labelAdicionar = "Adicionar pendência",
+  comoCard = true,
 }: {
   itens: PendenciaItem[];
   onChange: (v: PendenciaItem[]) => void;
   onCommit: () => void;
+  ambienteId?: string | null;
+  titulo?: string;
+  vazioMsg?: string;
+  labelAdicionar?: string;
+  comoCard?: boolean;
 }) {
-  function atualizar(idx: number, patch: Partial<PendenciaItem>) {
+  // Trabalhamos sempre sobre a lista global. Aqui mostramos só os do escopo,
+  // mas as edições preservam a ordem global.
+  const indicesEscopo = itens
+    .map((p, i) => ({ p, i }))
+    .filter(({ p }) => (p.ambiente_id ?? null) === ambienteId);
+
+  function atualizar(idxGlobal: number, patch: Partial<PendenciaItem>) {
     const novo = itens.slice();
-    novo[idx] = { ...novo[idx], ...patch };
+    novo[idxGlobal] = { ...novo[idxGlobal], ...patch };
     onChange(novo);
   }
-  function remover(idx: number) {
+  function remover(idxGlobal: number) {
     const novo = itens.slice();
-    novo.splice(idx, 1);
+    novo.splice(idxGlobal, 1);
     onChange(novo);
     setTimeout(onCommit, 0);
   }
   function adicionar() {
-    onChange([...itens, { descricao: "", prioridade: "media" }]);
+    onChange([
+      ...itens,
+      { descricao: "", prioridade: "media", ambiente_id: ambienteId },
+    ]);
   }
 
-  return (
-    <CardSecao titulo="Pendências">
-      {itens.length === 0 ? (
-        <p className="text-sm text-nue-graphite">Nenhuma pendência registrada</p>
+  const conteudo = (
+    <>
+      {indicesEscopo.length === 0 ? (
+        <p className="text-sm text-nue-graphite">{vazioMsg}</p>
       ) : (
         <ul className="space-y-3">
-          {itens.map((it, idx) => (
+          {indicesEscopo.map(({ p: it, i: idx }) => (
             <li key={idx} className="space-y-2">
               <div className="flex items-start gap-2">
                 <input
@@ -1196,10 +1215,13 @@ function SecaoPendencias({
         className="mt-4 inline-flex items-center gap-1.5 text-[13px] text-nue-black hover:underline"
       >
         <Plus className="h-3.5 w-3.5" />
-        Adicionar pendência
+        {labelAdicionar}
       </button>
-    </CardSecao>
+    </>
   );
+
+  if (comoCard) return <CardSecao titulo={titulo}>{conteudo}</CardSecao>;
+  return <div>{conteudo}</div>;
 }
 
 /* ---------------- Seção 5 — Pontos de atenção ---------------- */
@@ -1208,33 +1230,47 @@ function SecaoPontosAtencao({
   itens,
   onChange,
   onCommit,
+  ambienteId = null,
+  titulo = "Pontos de atenção",
+  vazioMsg = "Nenhum ponto registrado",
+  labelAdicionar = "Adicionar ponto de atenção",
+  comoCard = true,
 }: {
   itens: PontoAtencaoItem[];
   onChange: (v: PontoAtencaoItem[]) => void;
   onCommit: () => void;
+  ambienteId?: string | null;
+  titulo?: string;
+  vazioMsg?: string;
+  labelAdicionar?: string;
+  comoCard?: boolean;
 }) {
-  function atualizar(idx: number, valor: string) {
+  const indicesEscopo = itens
+    .map((p, i) => ({ p, i }))
+    .filter(({ p }) => (p.ambiente_id ?? null) === ambienteId);
+
+  function atualizar(idxGlobal: number, valor: string) {
     const novo = itens.slice();
-    novo[idx] = { descricao: valor };
+    novo[idxGlobal] = { ...novo[idxGlobal], descricao: valor };
     onChange(novo);
   }
-  function remover(idx: number) {
+  function remover(idxGlobal: number) {
     const novo = itens.slice();
-    novo.splice(idx, 1);
+    novo.splice(idxGlobal, 1);
     onChange(novo);
     setTimeout(onCommit, 0);
   }
   function adicionar() {
-    onChange([...itens, { descricao: "" }]);
+    onChange([...itens, { descricao: "", ambiente_id: ambienteId }]);
   }
 
-  return (
-    <CardSecao titulo="Pontos de atenção">
-      {itens.length === 0 ? (
-        <p className="text-sm text-nue-graphite">Nenhum ponto registrado</p>
+  const conteudo = (
+    <>
+      {indicesEscopo.length === 0 ? (
+        <p className="text-sm text-nue-graphite">{vazioMsg}</p>
       ) : (
         <ul className="space-y-2">
-          {itens.map((it, idx) => (
+          {indicesEscopo.map(({ p: it, i: idx }) => (
             <li key={idx} className="flex items-center gap-2">
               <input
                 type="text"
@@ -1262,10 +1298,13 @@ function SecaoPontosAtencao({
         className="mt-4 inline-flex items-center gap-1.5 text-[13px] text-nue-black hover:underline"
       >
         <Plus className="h-3.5 w-3.5" />
-        Adicionar ponto de atenção
+        {labelAdicionar}
       </button>
-    </CardSecao>
+    </>
   );
+
+  if (comoCard) return <CardSecao titulo={titulo}>{conteudo}</CardSecao>;
+  return <div>{conteudo}</div>;
 }
 
 /* ---------------- Rodapé fixo ---------------- */

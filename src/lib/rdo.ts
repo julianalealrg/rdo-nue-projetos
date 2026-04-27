@@ -18,8 +18,15 @@ import type { Json } from "@/integrations/supabase/types";
 
 export type EquipeItem = { nome: string; funcao: string };
 export type TerceiroItem = { nome: string; papel: string };
-export type PendenciaItem = { descricao: string; prioridade: Prioridade };
-export type PontoAtencaoItem = { descricao: string };
+export type PendenciaItem = {
+  descricao: string;
+  prioridade: Prioridade;
+  ambiente_id: string | null;
+};
+export type PontoAtencaoItem = {
+  descricao: string;
+  ambiente_id: string | null;
+};
 
 export type FormRdoState = {
   data: string;
@@ -93,10 +100,11 @@ export async function fetchRdoCompleto(id: string): Promise<RdoComObra> {
       `*,
        supervisor:supervisores(id, nome, iniciais),
        fotos:rdo_fotos(*, ambiente:obra_ambientes(id, nome, ordem, ativo)),
-       pendencias:rdo_pendencias(*),
-       pontos_atencao:rdo_pontos_atencao(*),
+       pendencias:rdo_pendencias(*, ambiente:obra_ambientes(id, nome, ordem, ativo)),
+       pontos_atencao:rdo_pontos_atencao(*, ambiente:obra_ambientes(id, nome, ordem, ativo)),
        equipe_nue:rdo_equipe_nue(*),
        terceiros:rdo_terceiros(*),
+       observacoes_ambiente:rdo_observacoes_ambiente(*),
        obra:obras(*, supervisor:supervisores(id, nome, iniciais))`
     )
     .eq("id", id)
@@ -137,6 +145,8 @@ export async function fetchRdoCompleto(id: string): Promise<RdoComObra> {
     terceiros: ((r.terceiros as RdoTerceiro[]) ?? [])
       .slice()
       .sort((a, b) => a.ordem - b.ordem),
+    observacoes_ambiente:
+      ((r.observacoes_ambiente as RdoCompleto["observacoes_ambiente"]) ?? []).slice(),
   };
 
   const obra: ObraComSupervisor = {
@@ -164,8 +174,12 @@ export function rdoParaForm(rdo: RdoCompleto): FormRdoState {
     pendencias: rdo.pendencias.map((p) => ({
       descricao: p.descricao,
       prioridade: p.prioridade,
+      ambiente_id: p.ambiente_id ?? null,
     })),
-    pontos_atencao: rdo.pontos_atencao.map((p) => ({ descricao: p.descricao })),
+    pontos_atencao: rdo.pontos_atencao.map((p) => ({
+      descricao: p.descricao,
+      ambiente_id: p.ambiente_id ?? null,
+    })),
   };
 }
 
@@ -277,6 +291,7 @@ export async function sincronizarFilhos(args: {
         rdo_id,
         descricao: p.descricao.trim(),
         prioridade: p.prioridade,
+        ambiente_id: p.ambiente_id ?? null,
         ordem: i,
       })),
     );
@@ -287,10 +302,92 @@ export async function sincronizarFilhos(args: {
       pontosFiltrados.map((p, i) => ({
         rdo_id,
         descricao: p.descricao.trim(),
+        ambiente_id: p.ambiente_id ?? null,
         ordem: i,
       })),
     );
     if (e) throw new Error(`Falha ao salvar pontos de atenção: ${e.message}`);
+  }
+}
+
+/* ---------------- Observações por ambiente ---------------- */
+
+export async function upsertObservacaoAmbiente(
+  rdo_id: string,
+  ambiente_id: string,
+  texto: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("rdo_observacoes_ambiente")
+    .upsert(
+      { rdo_id, ambiente_id, texto },
+      { onConflict: "rdo_id,ambiente_id" },
+    );
+  if (error) throw new Error(`Falha ao salvar observação: ${error.message}`);
+}
+
+export async function removerObservacaoAmbiente(
+  rdo_id: string,
+  ambiente_id: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("rdo_observacoes_ambiente")
+    .delete()
+    .eq("rdo_id", rdo_id)
+    .eq("ambiente_id", ambiente_id);
+  if (error) throw new Error(`Falha ao remover observação: ${error.message}`);
+}
+
+/** Remove tudo de um ambiente neste RDO: fotos, observações, pendências e pontos. */
+export async function removerAmbienteDoRdo(args: {
+  rdo_id: string;
+  ambiente_id: string;
+}): Promise<void> {
+  // Fotos: deletar storage + linhas
+  const { data: fotosAmb, error: fErr } = await supabase
+    .from("rdo_fotos")
+    .select("id, url")
+    .eq("rdo_id", args.rdo_id)
+    .eq("ambiente_id", args.ambiente_id);
+  if (fErr) throw new Error(`Falha ao listar fotos: ${fErr.message}`);
+
+  if (fotosAmb && fotosAmb.length > 0) {
+    const paths = fotosAmb
+      .map((f) => {
+        const idx = f.url.indexOf("/rdo-fotos/");
+        return idx === -1 ? null : f.url.slice(idx + "/rdo-fotos/".length);
+      })
+      .filter((p): p is string => !!p);
+    if (paths.length > 0) {
+      await supabase.storage.from("rdo-fotos").remove(paths);
+    }
+    const { error: dfErr } = await supabase
+      .from("rdo_fotos")
+      .delete()
+      .eq("rdo_id", args.rdo_id)
+      .eq("ambiente_id", args.ambiente_id);
+    if (dfErr) throw new Error(`Falha ao remover fotos: ${dfErr.message}`);
+  }
+
+  const results = await Promise.all([
+    supabase
+      .from("rdo_observacoes_ambiente")
+      .delete()
+      .eq("rdo_id", args.rdo_id)
+      .eq("ambiente_id", args.ambiente_id),
+    supabase
+      .from("rdo_pendencias")
+      .delete()
+      .eq("rdo_id", args.rdo_id)
+      .eq("ambiente_id", args.ambiente_id),
+    supabase
+      .from("rdo_pontos_atencao")
+      .delete()
+      .eq("rdo_id", args.rdo_id)
+      .eq("ambiente_id", args.ambiente_id),
+  ]);
+  for (const r of results) {
+    if (r.error) throw new Error(`Falha ao remover ambiente: ${r.error.message}`);
   }
 }
 

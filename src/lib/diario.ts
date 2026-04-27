@@ -5,14 +5,22 @@ export type Obra = Tables<"obras">;
 export type Supervisor = Tables<"supervisores">;
 export type Rdo = Tables<"rdos">;
 export type Ambiente = Tables<"obra_ambientes">;
+export type AmbienteResumo = Pick<Ambiente, "id" | "nome" | "ordem" | "ativo">;
 export type RdoFotoBase = Tables<"rdo_fotos">;
 export type RdoFoto = RdoFotoBase & {
-  ambiente?: Pick<Ambiente, "id" | "nome" | "ordem" | "ativo"> | null;
+  ambiente?: AmbienteResumo | null;
 };
-export type RdoPendencia = Tables<"rdo_pendencias">;
-export type RdoPontoAtencao = Tables<"rdo_pontos_atencao">;
+export type RdoPendenciaBase = Tables<"rdo_pendencias">;
+export type RdoPendencia = RdoPendenciaBase & {
+  ambiente?: AmbienteResumo | null;
+};
+export type RdoPontoAtencaoBase = Tables<"rdo_pontos_atencao">;
+export type RdoPontoAtencao = RdoPontoAtencaoBase & {
+  ambiente?: AmbienteResumo | null;
+};
 export type RdoEquipeNue = Tables<"rdo_equipe_nue">;
 export type RdoTerceiro = Tables<"rdo_terceiros">;
+export type RdoObservacaoAmbiente = Tables<"rdo_observacoes_ambiente">;
 
 export type RdoCompleto = Rdo & {
   supervisor: Pick<Supervisor, "id" | "nome" | "iniciais"> | null;
@@ -21,6 +29,7 @@ export type RdoCompleto = Rdo & {
   pontos_atencao: RdoPontoAtencao[];
   equipe_nue: RdoEquipeNue[];
   terceiros: RdoTerceiro[];
+  observacoes_ambiente: RdoObservacaoAmbiente[];
 };
 
 export type ObraComSupervisor = Obra & {
@@ -41,6 +50,8 @@ export class ObraNaoEncontradaError extends Error {
 }
 
 const FOTO_SELECT = "*, ambiente:obra_ambientes(id, nome, ordem, ativo)";
+const PEND_SELECT = "*, ambiente:obra_ambientes(id, nome, ordem, ativo)";
+const PONTO_SELECT = "*, ambiente:obra_ambientes(id, nome, ordem, ativo)";
 
 export async function fetchDiarioObra(id: string): Promise<DiarioObraData> {
   const [obraRes, rdosRes, ambientesRes] = await Promise.all([
@@ -55,10 +66,11 @@ export async function fetchDiarioObra(id: string): Promise<DiarioObraData> {
         `*,
          supervisor:supervisores(id, nome, iniciais),
          fotos:rdo_fotos(${FOTO_SELECT}),
-         pendencias:rdo_pendencias(*),
-         pontos_atencao:rdo_pontos_atencao(*),
+         pendencias:rdo_pendencias(${PEND_SELECT}),
+         pontos_atencao:rdo_pontos_atencao(${PONTO_SELECT}),
          equipe_nue:rdo_equipe_nue(*),
-         terceiros:rdo_terceiros(*)`,
+         terceiros:rdo_terceiros(*),
+         observacoes_ambiente:rdo_observacoes_ambiente(*)`,
       )
       .eq("obra_id", id)
       .order("data", { ascending: false })
@@ -96,6 +108,8 @@ export async function fetchDiarioObra(id: string): Promise<DiarioObraData> {
     terceiros: ((r as { terceiros: RdoTerceiro[] }).terceiros ?? [])
       .slice()
       .sort((a, b) => a.ordem - b.ordem),
+    observacoes_ambiente:
+      ((r as { observacoes_ambiente: RdoObservacaoAmbiente[] }).observacoes_ambiente ?? []).slice(),
   }));
 
   return {

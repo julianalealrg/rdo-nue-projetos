@@ -170,8 +170,51 @@ export type Database = {
           },
         ]
       }
+      rdo_observacoes_ambiente: {
+        Row: {
+          ambiente_id: string
+          created_at: string
+          id: string
+          rdo_id: string
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          ambiente_id: string
+          created_at?: string
+          id?: string
+          rdo_id: string
+          texto?: string
+          updated_at?: string
+        }
+        Update: {
+          ambiente_id?: string
+          created_at?: string
+          id?: string
+          rdo_id?: string
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rdo_observacoes_ambiente_ambiente_id_fkey"
+            columns: ["ambiente_id"]
+            isOneToOne: false
+            referencedRelation: "obra_ambientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rdo_observacoes_ambiente_rdo_id_fkey"
+            columns: ["rdo_id"]
+            isOneToOne: false
+            referencedRelation: "rdos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rdo_pendencias: {
         Row: {
+          ambiente_id: string | null
           descricao: string
           id: string
           ordem: number
@@ -180,6 +223,7 @@ export type Database = {
           resolvida_em: string | null
         }
         Insert: {
+          ambiente_id?: string | null
           descricao: string
           id?: string
           ordem?: number
@@ -188,6 +232,7 @@ export type Database = {
           resolvida_em?: string | null
         }
         Update: {
+          ambiente_id?: string | null
           descricao?: string
           id?: string
           ordem?: number
@@ -196,6 +241,13 @@ export type Database = {
           resolvida_em?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "rdo_pendencias_ambiente_id_fkey"
+            columns: ["ambiente_id"]
+            isOneToOne: false
+            referencedRelation: "obra_ambientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rdo_pendencias_rdo_id_fkey"
             columns: ["rdo_id"]
@@ -207,24 +259,34 @@ export type Database = {
       }
       rdo_pontos_atencao: {
         Row: {
+          ambiente_id: string | null
           descricao: string
           id: string
           ordem: number
           rdo_id: string
         }
         Insert: {
+          ambiente_id?: string | null
           descricao: string
           id?: string
           ordem?: number
           rdo_id: string
         }
         Update: {
+          ambiente_id?: string | null
           descricao?: string
           id?: string
           ordem?: number
           rdo_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rdo_pontos_atencao_ambiente_id_fkey"
+            columns: ["ambiente_id"]
+            isOneToOne: false
+            referencedRelation: "obra_ambientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rdo_pontos_atencao_rdo_id_fkey"
             columns: ["rdo_id"]
