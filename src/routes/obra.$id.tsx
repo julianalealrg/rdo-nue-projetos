@@ -204,6 +204,14 @@ function CabecalhoObra({
             <Plus className="h-4 w-4" />
             Novo RDO
           </Link>
+          <button
+            type="button"
+            onClick={onGerenciarAmbientes}
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
+          >
+            <Settings className="h-4 w-4" />
+            Gerenciar ambientes
+          </button>
           <ExportarDropdown />
         </div>
       </div>
