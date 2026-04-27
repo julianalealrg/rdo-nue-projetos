@@ -18,7 +18,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import SignatureCanvas from "react-signature-canvas";
 import { hojeRecife, horaAgoraRecife, horaAgoraRecifeFormatada } from "@/lib/datas";
-import type { ObraComSupervisor, RdoCompleto, CondicaoLocal, TipoVisita, Prioridade, RdoFoto } from "@/lib/diario";
+import type { ObraComSupervisor, RdoCompleto, CondicaoLocal, TipoVisita, Prioridade, RdoFoto, Ambiente } from "@/lib/diario";
 import {
   atualizarRdoCampos,
   criarRdoInicial,
@@ -33,15 +33,13 @@ import {
 } from "@/lib/rdo";
 import {
   ArquivoMuitoGrandeError,
-  atualizarFotoCampos,
-  fetchAmbientesDaObra,
-  limparAmbienteRdo,
+  atualizarLegendaFoto,
   persistirOrdemFotos,
   removerFoto,
-  renomearAmbienteRdo,
   uploadAssinatura,
   uploadFoto,
 } from "@/lib/fotos";
+import { criarAmbiente, fetchAmbientesObra } from "@/lib/ambientes";
 import { Lightbox } from "@/components/Lightbox";
 
 
