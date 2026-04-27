@@ -443,6 +443,16 @@ export function FormularioRdo(props: Props) {
             }}
             onCommit={agendarSaveImediato}
           />
+          <SecaoFotos
+            rdoId={rdoId}
+            obraId={props.obra.id}
+            fotos={fotos}
+            setFotos={setFotos}
+            onSavingStart={marcarSalvando}
+            onSavingDone={marcarSalvo}
+            onSavingError={marcarErro}
+            agendarPersistirOrdem={agendarPersistirOrdem}
+          />
         </div>
 
         {/* Coluna direita (40%) */}
@@ -458,8 +468,26 @@ export function FormularioRdo(props: Props) {
             onChange={(v) => atualizarCampo("pontos_atencao", v)}
             onCommit={agendarSaveImediato}
           />
+          <SecaoAssinatura
+            ref={secaoAssinaturaRef}
+            rdoId={rdoId}
+            assinaturaUrl={assinaturaUrl}
+            substituindo={substituindoAssinatura}
+            onSubstituir={() => setSubstituindoAssinatura(true)}
+            onCancelarSubstituir={() => {
+              setSubstituindoAssinatura(false);
+              sigPadRef.current?.clear();
+              sigDirtyRef.current = false;
+            }}
+            supervisor={props.obra.supervisor}
+            destacarErro={assinaturaErroDestaque}
+            sigPadRef={sigPadRef}
+            sigDirtyRef={sigDirtyRef}
+            onDirty={() => setDirty(true)}
+          />
         </div>
       </div>
+
 
       {/* Rodapé fixo */}
       <RodapeFixo
