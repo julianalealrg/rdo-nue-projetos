@@ -13,8 +13,8 @@ import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RdoIdRouteImport } from './routes/rdo.$id'
 import { Route as ObraIdRouteImport } from './routes/obra.$id'
-import { Route as RdoIdEditarRouteImport } from './routes/rdo.$id.editar'
-import { Route as ObraIdRdoNovoRouteImport } from './routes/obra.$id.rdo.novo'
+import { Route as RdoIdEditarRouteImport } from './routes/rdo_.$id.editar'
+import { Route as ObraIdRdoNovoRouteImport } from './routes/obra_.$id.rdo.novo'
 
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   id: '/configuracoes',
@@ -37,29 +37,29 @@ const ObraIdRoute = ObraIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const RdoIdEditarRoute = RdoIdEditarRouteImport.update({
-  id: '/editar',
-  path: '/editar',
-  getParentRoute: () => RdoIdRoute,
+  id: '/rdo_/$id/editar',
+  path: '/rdo/$id/editar',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ObraIdRdoNovoRoute = ObraIdRdoNovoRouteImport.update({
-  id: '/rdo/novo',
-  path: '/rdo/novo',
-  getParentRoute: () => ObraIdRoute,
+  id: '/obra_/$id/rdo/novo',
+  path: '/obra/$id/rdo/novo',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
-  '/obra/$id': typeof ObraIdRouteWithChildren
-  '/rdo/$id': typeof RdoIdRouteWithChildren
+  '/obra/$id': typeof ObraIdRoute
+  '/rdo/$id': typeof RdoIdRoute
   '/rdo/$id/editar': typeof RdoIdEditarRoute
   '/obra/$id/rdo/novo': typeof ObraIdRdoNovoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
-  '/obra/$id': typeof ObraIdRouteWithChildren
-  '/rdo/$id': typeof RdoIdRouteWithChildren
+  '/obra/$id': typeof ObraIdRoute
+  '/rdo/$id': typeof RdoIdRoute
   '/rdo/$id/editar': typeof RdoIdEditarRoute
   '/obra/$id/rdo/novo': typeof ObraIdRdoNovoRoute
 }
@@ -67,10 +67,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
-  '/obra/$id': typeof ObraIdRouteWithChildren
-  '/rdo/$id': typeof RdoIdRouteWithChildren
-  '/rdo/$id/editar': typeof RdoIdEditarRoute
-  '/obra/$id/rdo/novo': typeof ObraIdRdoNovoRoute
+  '/obra/$id': typeof ObraIdRoute
+  '/rdo/$id': typeof RdoIdRoute
+  '/rdo_/$id/editar': typeof RdoIdEditarRoute
+  '/obra_/$id/rdo/novo': typeof ObraIdRdoNovoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -95,15 +95,17 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/obra/$id'
     | '/rdo/$id'
-    | '/rdo/$id/editar'
-    | '/obra/$id/rdo/novo'
+    | '/rdo_/$id/editar'
+    | '/obra_/$id/rdo/novo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
-  ObraIdRoute: typeof ObraIdRouteWithChildren
-  RdoIdRoute: typeof RdoIdRouteWithChildren
+  ObraIdRoute: typeof ObraIdRoute
+  RdoIdRoute: typeof RdoIdRoute
+  RdoIdEditarRoute: typeof RdoIdEditarRoute
+  ObraIdRdoNovoRoute: typeof ObraIdRdoNovoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -136,50 +138,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObraIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/rdo/$id/editar': {
-      id: '/rdo/$id/editar'
-      path: '/editar'
+    '/rdo_/$id/editar': {
+      id: '/rdo_/$id/editar'
+      path: '/rdo/$id/editar'
       fullPath: '/rdo/$id/editar'
       preLoaderRoute: typeof RdoIdEditarRouteImport
-      parentRoute: typeof RdoIdRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/obra/$id/rdo/novo': {
-      id: '/obra/$id/rdo/novo'
-      path: '/rdo/novo'
+    '/obra_/$id/rdo/novo': {
+      id: '/obra_/$id/rdo/novo'
+      path: '/obra/$id/rdo/novo'
       fullPath: '/obra/$id/rdo/novo'
       preLoaderRoute: typeof ObraIdRdoNovoRouteImport
-      parentRoute: typeof ObraIdRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface ObraIdRouteChildren {
-  ObraIdRdoNovoRoute: typeof ObraIdRdoNovoRoute
-}
-
-const ObraIdRouteChildren: ObraIdRouteChildren = {
-  ObraIdRdoNovoRoute: ObraIdRdoNovoRoute,
-}
-
-const ObraIdRouteWithChildren =
-  ObraIdRoute._addFileChildren(ObraIdRouteChildren)
-
-interface RdoIdRouteChildren {
-  RdoIdEditarRoute: typeof RdoIdEditarRoute
-}
-
-const RdoIdRouteChildren: RdoIdRouteChildren = {
-  RdoIdEditarRoute: RdoIdEditarRoute,
-}
-
-const RdoIdRouteWithChildren = RdoIdRoute._addFileChildren(RdoIdRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
-  ObraIdRoute: ObraIdRouteWithChildren,
-  RdoIdRoute: RdoIdRouteWithChildren,
+  ObraIdRoute: ObraIdRoute,
+  RdoIdRoute: RdoIdRoute,
+  RdoIdEditarRoute: RdoIdEditarRoute,
+  ObraIdRdoNovoRoute: ObraIdRdoNovoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
