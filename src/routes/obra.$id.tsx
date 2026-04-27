@@ -133,7 +133,12 @@ function DiarioObraView({
 
   return (
     <div className="space-y-4">
-      <CabecalhoObra obra={obra} totalRdos={rdos.length} periodo={periodo} />
+      <CabecalhoObra
+        obra={obra}
+        totalRdos={rdos.length}
+        periodo={periodo}
+        onGerenciarAmbientes={() => setGerenciarAmbientesAberto(true)}
+      />
 
       {rdos.length === 0 ? (
         <EmptyStateRdos obraId={obra.id} />
@@ -149,6 +154,13 @@ function DiarioObraView({
           ))}
         </div>
       )}
+
+      <ModalGerenciarAmbientes
+        open={gerenciarAmbientesAberto}
+        onClose={() => setGerenciarAmbientesAberto(false)}
+        obraId={obra.id}
+        nomeCliente={obra.nome_cliente}
+      />
     </div>
   );
 }
