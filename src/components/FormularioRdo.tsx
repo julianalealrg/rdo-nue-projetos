@@ -128,7 +128,7 @@ export function FormularioRdo(props: Props) {
   >([]);
   const recarregarAmbientes = useCallback(async () => {
     try {
-      const lista = await fetchAmbientesObra(props.obra.id, true);
+      const lista = await fetchAmbientesObra(props.obra.id);
       setAmbientesObra(lista);
     } catch (e) {
       console.error("Erro ao carregar ambientes da obra", e);
