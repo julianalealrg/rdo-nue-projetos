@@ -495,7 +495,7 @@ export function DocumentoPdf({
       ) : (
         <Page size="A4" style={styles.page}>
           {lista.map((rdo, i) => (
-            <View key={rdo.id} break={i > 0}>
+            <View key={rdo.id} style={i > 0 ? { marginTop: 24 } : undefined} wrap>
               <RdoBloco rdo={rdo} fotosCache={fotosCache} variant={variant} />
             </View>
           ))}
