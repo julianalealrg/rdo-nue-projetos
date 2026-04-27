@@ -33,11 +33,12 @@ import {
 } from "@/lib/rdo";
 import {
   ArquivoMuitoGrandeError,
-  CATEGORIAS_FOTO,
-  type CategoriaFoto,
   atualizarFotoCampos,
+  fetchAmbientesDaObra,
+  limparAmbienteRdo,
   persistirOrdemFotos,
   removerFoto,
+  renomearAmbienteRdo,
   uploadAssinatura,
   uploadFoto,
 } from "@/lib/fotos";
@@ -1352,6 +1353,16 @@ function DialogoConfirmar({
 
 /* ---------------- Seção 6 — Fotos ---------------- */
 
+type UploadItem = {
+  id: string;
+  nome: string;
+  status: "uploading" | "erro";
+  progresso: number;
+  erro?: string;
+  file?: File;
+  ambiente: string;
+};
+
 function SecaoFotos({
   rdoId,
   obraId,
@@ -1373,22 +1384,56 @@ function SecaoFotos({
   agendarPersistirOrdem: (lista: RdoFoto[]) => void;
   mensagemBloqueio: string;
 }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [uploads, setUploads] = useState<{ id: string; nome: string; status: "uploading" | "erro"; progresso: number; erro?: string; file?: File }[]>([]);
-  const [dragOver, setDragOver] = useState(false);
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [confirmandoRemover, setConfirmandoRemover] = useState<RdoFoto | null>(null);
-  const [draggingFotoIdx, setDraggingFotoIdx] = useState<number | null>(null);
+  const [confirmandoRemoverAmbiente, setConfirmandoRemoverAmbiente] = useState<string | null>(null);
+  const [ambientesExtras, setAmbientesExtras] = useState<string[]>([]);
+  const [sugestoes, setSugestoes] = useState<string[]>([]);
   const debounceLegendaRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const debounceAmbienteRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const focusNovoRef = useRef<string | null>(null);
 
   const desabilitado = !rdoId;
 
-  async function processarArquivos(files: FileList | File[]) {
+  useEffect(() => {
+    let cancelado = false;
+    fetchAmbientesDaObra(obraId)
+      .then((lista) => {
+        if (!cancelado) setSugestoes(lista);
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [obraId]);
+
+  const ambientesNasFotos = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of fotos) if (f.ambiente && f.ambiente.trim() !== "") set.add(f.ambiente);
+    return Array.from(set);
+  }, [fotos]);
+
+  const ambientes = useMemo(() => {
+    const set = new Set<string>([...ambientesNasFotos, ...ambientesExtras]);
+    return Array.from(set);
+  }, [ambientesNasFotos, ambientesExtras]);
+
+  const temFotosSemAmbiente = useMemo(
+    () => fotos.some((f) => !f.ambiente || f.ambiente.trim() === ""),
+    [fotos],
+  );
+
+  function fotosDoAmbiente(nome: string): RdoFoto[] {
+    return fotos.filter((f) => (f.ambiente ?? "") === nome);
+  }
+
+  async function processarArquivos(files: FileList | File[], ambiente: string) {
     if (!rdoId) return;
     const arr = Array.from(files);
     for (const file of arr) {
       const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      setUploads((u) => [...u, { id: tempId, nome: file.name, status: "uploading", progresso: 10, file }]);
+      setUploads((u) => [...u, { id: tempId, nome: file.name, status: "uploading", progresso: 10, file, ambiente }]);
       onSavingStart();
       try {
         const progT = setInterval(() => {
@@ -1401,10 +1446,14 @@ function SecaoFotos({
           obra_id: obraId,
           rdo_id: rdoId,
           ordem: fotos.length + uploads.length,
+          ambiente,
         });
         clearInterval(progT);
         setUploads((u) => u.filter((x) => x.id !== tempId));
         setFotos((f) => [...f, novaFoto]);
+        if (ambiente) {
+          setAmbientesExtras((ex) => ex.filter((e) => e !== ambiente));
+        }
         onSavingDone();
       } catch (err) {
         if (err instanceof ArquivoMuitoGrandeError) {
@@ -1421,23 +1470,9 @@ function SecaoFotos({
     }
   }
 
-  function aoSelecionar(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files) {
-      processarArquivos(e.target.files);
-      e.target.value = "";
-    }
-  }
-
-  function aoSoltar(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setDragOver(false);
-    if (desabilitado) return;
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processarArquivos(e.dataTransfer.files);
-    }
-  }
-
-  async function mover(idx: number, delta: -1 | 1) {
+  async function moverFoto(idGlobal: string, delta: -1 | 1) {
+    const idx = fotos.findIndex((f) => f.id === idGlobal);
+    if (idx === -1) return;
     const novo = idx + delta;
     if (novo < 0 || novo >= fotos.length) return;
     const lista = fotos.slice();
@@ -1465,15 +1500,21 @@ function SecaoFotos({
     }
   }
 
-  async function alterarCategoria(foto: RdoFoto, valor: string) {
-    const cat = valor === "" ? null : (valor as CategoriaFoto);
-    setFotos((f) => f.map((x) => (x.id === foto.id ? { ...x, categoria: cat } : x)));
+  async function confirmarRemoverAmbiente() {
+    const nome = confirmandoRemoverAmbiente;
+    if (!nome || !rdoId) return;
+    setConfirmandoRemoverAmbiente(null);
+    setAmbientesExtras((ex) => ex.filter((e) => e !== nome));
+    const original = fotos;
+    setFotos((f) => f.map((x) => (x.ambiente === nome ? { ...x, ambiente: "" } : x)));
     onSavingStart();
     try {
-      await atualizarFotoCampos({ id: foto.id, categoria: cat });
+      await limparAmbienteRdo({ rdo_id: rdoId, ambiente: nome });
       onSavingDone();
     } catch (err) {
+      setFotos(original);
       onSavingError(err instanceof Error ? err.message : "Erro");
+      toast.error("Não foi possível remover o ambiente");
     }
   }
 
@@ -1497,31 +1538,56 @@ function SecaoFotos({
     );
   }
 
+  function renomearAmbienteLocal(antigo: string, novo: string) {
+    if (!rdoId) return;
+    setFotos((f) => f.map((x) => (x.ambiente === antigo ? { ...x, ambiente: novo } : x)));
+    setAmbientesExtras((ex) => ex.map((e) => (e === antigo ? novo : e)));
+
+    const timers = debounceAmbienteRef.current;
+    const key = `ambiente:${antigo}`;
+    const t = timers.get(key);
+    if (t) clearTimeout(t);
+    timers.set(
+      key,
+      setTimeout(async () => {
+        timers.delete(key);
+        onSavingStart();
+        try {
+          await renomearAmbienteRdo({ rdo_id: rdoId, de: antigo, para: novo });
+          if (novo && !sugestoes.includes(novo)) {
+            setSugestoes((s) => [...s, novo].sort((a, b) => a.localeCompare(b, "pt-BR")));
+          }
+          onSavingDone();
+        } catch (err) {
+          onSavingError(err instanceof Error ? err.message : "Erro");
+        }
+      }, 800),
+    );
+  }
+
+  function adicionarAmbienteVazio() {
+    let n = 1;
+    let candidato = `Ambiente ${n}`;
+    const existentes = new Set(ambientes);
+    while (existentes.has(candidato)) {
+      n += 1;
+      candidato = `Ambiente ${n}`;
+    }
+    setAmbientesExtras((ex) => [...ex, candidato]);
+    focusNovoRef.current = candidato;
+  }
+
   function reTentar(uploadId: string) {
     const item = uploads.find((u) => u.id === uploadId);
     if (!item || !item.file) return;
     setUploads((u) => u.filter((x) => x.id !== uploadId));
-    processarArquivos([item.file]);
+    processarArquivos([item.file], item.ambiente);
   }
 
-  function aoDragStartFoto(idx: number) {
-    setDraggingFotoIdx(idx);
-  }
-  function aoDragOverFoto(e: React.DragEvent) {
-    e.preventDefault();
-  }
-  function aoDropFoto(idx: number) {
-    if (draggingFotoIdx === null || draggingFotoIdx === idx) {
-      setDraggingFotoIdx(null);
-      return;
-    }
-    const lista = fotos.slice();
-    const [item] = lista.splice(draggingFotoIdx, 1);
-    lista.splice(idx, 0, item);
-    setFotos(lista);
-    agendarPersistirOrdem(lista);
-    setDraggingFotoIdx(null);
-  }
+  const ambientesOrdenados = useMemo(
+    () => ambientes.slice().sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [ambientes],
+  );
 
   return (
     <section
@@ -1542,6 +1608,7 @@ function SecaoFotos({
           ({fotos.length})
         </span>
       </header>
+
       <div className="mt-4">
         {desabilitado ? (
           <div className="opacity-50">
@@ -1553,61 +1620,68 @@ function SecaoFotos({
             </p>
           </div>
         ) : (
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              if (!dragOver) setDragOver(true);
-            }}
-            onDragLeave={(e) => {
-              if (e.currentTarget === e.target) setDragOver(false);
-            }}
-            onDrop={aoSoltar}
-            className={`rounded-sm transition-colors ${
-              dragOver ? "border-2 border-dashed border-nue-graphite bg-nue-taupe/30 p-2" : ""
-            }`}
-          >
-            {(fotos.length > 0 || uploads.length > 0) && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {fotos.map((foto, idx) => (
-                  <FotoTile
-                    key={foto.id}
-                    foto={foto}
-                    idx={idx}
-                    total={fotos.length}
-                    onAbrir={() => setLightboxIdx(idx)}
-                    onMoverEsquerda={() => mover(idx, -1)}
-                    onMoverDireita={() => mover(idx, 1)}
-                    onRemover={() => setConfirmandoRemover(foto)}
-                    onCategoria={(v) => alterarCategoria(foto, v)}
-                    onLegenda={(v) => alterarLegenda(foto, v)}
-                    onDragStartFoto={() => aoDragStartFoto(idx)}
-                    onDragOverFoto={aoDragOverFoto}
-                    onDropFoto={() => aoDropFoto(idx)}
-                  />
-                ))}
-                {uploads.map((up) => (
-                  <UploadTile key={up.id} upload={up} onRetry={() => reTentar(up.id)} />
-                ))}
-              </div>
+          <div className="space-y-4">
+            {ambientesOrdenados.map((nome) => (
+              <CardAmbiente
+                key={`amb:${nome}`}
+                nome={nome}
+                fotos={fotosDoAmbiente(nome)}
+                uploads={uploads.filter((u) => u.ambiente === nome)}
+                sugestoes={sugestoes.filter((s) => s !== nome)}
+                autoFocusNome={focusNovoRef.current === nome}
+                onConsumirAutoFocus={() => {
+                  focusNovoRef.current = null;
+                }}
+                onRenomear={(novo) => renomearAmbienteLocal(nome, novo)}
+                onRemoverAmbiente={() => setConfirmandoRemoverAmbiente(nome)}
+                onAdicionarFotos={(files) => processarArquivos(files, nome)}
+                onAbrirFoto={(foto) => {
+                  const idx = fotos.findIndex((f) => f.id === foto.id);
+                  if (idx !== -1) setLightboxIdx(idx);
+                }}
+                onMoverEsquerda={(foto) => moverFoto(foto.id, -1)}
+                onMoverDireita={(foto) => moverFoto(foto.id, 1)}
+                onRemoverFoto={(foto) => setConfirmandoRemover(foto)}
+                onLegenda={alterarLegenda}
+                onRetryUpload={reTentar}
+                fotosTodas={fotos}
+              />
+            ))}
+
+            {temFotosSemAmbiente && (
+              <CardAmbiente
+                key="amb:__sem__"
+                nome=""
+                nomeFixo
+                fotos={fotosDoAmbiente("")}
+                uploads={uploads.filter((u) => u.ambiente === "")}
+                sugestoes={[]}
+                autoFocusNome={false}
+                onConsumirAutoFocus={() => {}}
+                onRenomear={() => {}}
+                onRemoverAmbiente={() => {}}
+                onAdicionarFotos={(files) => processarArquivos(files, "")}
+                onAbrirFoto={(foto) => {
+                  const idx = fotos.findIndex((f) => f.id === foto.id);
+                  if (idx !== -1) setLightboxIdx(idx);
+                }}
+                onMoverEsquerda={(foto) => moverFoto(foto.id, -1)}
+                onMoverDireita={(foto) => moverFoto(foto.id, 1)}
+                onRemoverFoto={(foto) => setConfirmandoRemover(foto)}
+                onLegenda={alterarLegenda}
+                onRetryUpload={reTentar}
+                fotosTodas={fotos}
+              />
             )}
 
             <button
               type="button"
-              onClick={() => inputRef.current?.click()}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-sm border border-nue-taupe bg-white py-3 text-sm text-nue-black transition-colors hover:bg-nue-taupe/40"
+              onClick={adicionarAmbienteVazio}
+              className="flex w-full items-center justify-center gap-2 rounded-sm border border-dashed border-nue-taupe bg-white py-3 text-sm text-nue-black transition-colors hover:bg-nue-taupe/40"
             >
-              <Camera className="h-4 w-4" />
-              Adicionar fotos
+              <Plus className="h-4 w-4" />
+              Adicionar ambiente
             </button>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              capture="environment"
-              onChange={aoSelecionar}
-              className="hidden"
-            />
           </div>
         )}
       </div>
@@ -1653,49 +1727,250 @@ function SecaoFotos({
           </div>
         </div>
       )}
+
+      {confirmandoRemoverAmbiente !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="absolute inset-0 bg-nue-black/60"
+            onClick={() => setConfirmandoRemoverAmbiente(null)}
+          />
+          <div className="relative w-full max-w-[420px] rounded-md bg-white p-5 shadow-lg">
+            <h3 className="text-lg text-nue-black" style={{ fontFamily: "var(--font-display)" }}>
+              Remover ambiente "{confirmandoRemoverAmbiente}"?
+            </h3>
+            <p className="mt-2 text-sm text-nue-graphite">
+              As fotos serão movidas para "Fotos sem ambiente".
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmandoRemoverAmbiente(null)}
+                className="h-9 rounded-sm border border-nue-taupe bg-white px-4 text-sm hover:bg-nue-taupe/40"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarRemoverAmbiente}
+                className="h-9 rounded-sm bg-[#8C3A2E] px-4 text-sm font-medium text-white hover:opacity-90"
+              >
+                Remover ambiente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
+  );
+}
+
+function CardAmbiente({
+  nome,
+  nomeFixo,
+  fotos,
+  uploads,
+  sugestoes,
+  autoFocusNome,
+  onConsumirAutoFocus,
+  onRenomear,
+  onRemoverAmbiente,
+  onAdicionarFotos,
+  onAbrirFoto,
+  onMoverEsquerda,
+  onMoverDireita,
+  onRemoverFoto,
+  onLegenda,
+  onRetryUpload,
+  fotosTodas,
+}: {
+  nome: string;
+  nomeFixo?: boolean;
+  fotos: RdoFoto[];
+  uploads: UploadItem[];
+  sugestoes: string[];
+  autoFocusNome: boolean;
+  onConsumirAutoFocus: () => void;
+  onRenomear: (novo: string) => void;
+  onRemoverAmbiente: () => void;
+  onAdicionarFotos: (files: FileList | File[]) => void;
+  onAbrirFoto: (foto: RdoFoto) => void;
+  onMoverEsquerda: (foto: RdoFoto) => void;
+  onMoverDireita: (foto: RdoFoto) => void;
+  onRemoverFoto: (foto: RdoFoto) => void;
+  onLegenda: (foto: RdoFoto, valor: string) => void;
+  onRetryUpload: (uploadId: string) => void;
+  fotosTodas: RdoFoto[];
+}) {
+  const inputFileRef = useRef<HTMLInputElement | null>(null);
+  const inputNomeRef = useRef<HTMLInputElement | null>(null);
+  const [valorNome, setValorNome] = useState(nome);
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
+
+  useEffect(() => {
+    setValorNome(nome);
+  }, [nome]);
+
+  useEffect(() => {
+    if (autoFocusNome && inputNomeRef.current) {
+      inputNomeRef.current.focus();
+      inputNomeRef.current.select();
+      onConsumirAutoFocus();
+    }
+  }, [autoFocusNome, onConsumirAutoFocus]);
+
+  function aoMudarNome(v: string) {
+    setValorNome(v);
+    onRenomear(v);
+  }
+
+  const sugestoesFiltradas = useMemo(() => {
+    const q = valorNome.trim().toLowerCase();
+    if (!q) return sugestoes.slice(0, 6);
+    return sugestoes.filter((s) => s.toLowerCase().includes(q)).slice(0, 6);
+  }, [sugestoes, valorNome]);
+
+  const idxGlobal = (foto: RdoFoto) => fotosTodas.findIndex((f) => f.id === foto.id);
+
+  return (
+    <div className="rounded-sm border border-nue-taupe bg-white" style={{ padding: "12px 14px" }}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="relative flex-1">
+          {nomeFixo ? (
+            <div
+              className="text-nue-black"
+              style={{ fontFamily: "var(--font-display)", fontSize: 15 }}
+            >
+              Fotos sem ambiente
+            </div>
+          ) : (
+            <>
+              <input
+                ref={inputNomeRef}
+                type="text"
+                value={valorNome}
+                onChange={(e) => aoMudarNome(e.target.value)}
+                onFocus={() => setMostrarSugestoes(true)}
+                onBlur={() => setTimeout(() => setMostrarSugestoes(false), 150)}
+                placeholder="Nome do ambiente (ex: Cozinha)"
+                className="w-full rounded-sm border border-nue-taupe bg-white px-2 py-1 text-nue-black focus:outline-none focus:border-nue-graphite"
+                style={{ fontFamily: "var(--font-display)", fontSize: 15 }}
+              />
+              {mostrarSugestoes && sugestoesFiltradas.length > 0 && (
+                <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-sm border border-nue-taupe bg-white shadow-md">
+                  {sugestoesFiltradas.map((s) => (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          aoMudarNome(s);
+                          setMostrarSugestoes(false);
+                        }}
+                        className="block w-full px-3 py-1.5 text-left text-sm text-nue-black hover:bg-nue-taupe/40"
+                      >
+                        {s}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
+        {!nomeFixo && (
+          <button
+            type="button"
+            onClick={onRemoverAmbiente}
+            className="inline-flex items-center gap-1 rounded-sm border border-nue-taupe bg-white px-2 py-1 text-[11px] text-nue-graphite hover:bg-nue-taupe/40"
+            title="Remover ambiente"
+          >
+            <Trash2 className="h-3 w-3" />
+            Remover
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3">
+        {(fotos.length > 0 || uploads.length > 0) && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {fotos.map((foto) => {
+              const idxG = idxGlobal(foto);
+              return (
+                <FotoTile
+                  key={foto.id}
+                  foto={foto}
+                  isPrimeira={idxG === 0}
+                  isUltima={idxG === fotosTodas.length - 1}
+                  onAbrir={() => onAbrirFoto(foto)}
+                  onMoverEsquerda={() => onMoverEsquerda(foto)}
+                  onMoverDireita={() => onMoverDireita(foto)}
+                  onRemover={() => onRemoverFoto(foto)}
+                  onLegenda={(v) => onLegenda(foto, v)}
+                />
+              );
+            })}
+            {uploads.map((up) => (
+              <UploadTile key={up.id} upload={up} onRetry={() => onRetryUpload(up.id)} />
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => inputFileRef.current?.click()}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-sm border border-nue-taupe bg-white py-2.5 text-sm text-nue-black transition-colors hover:bg-nue-taupe/40"
+        >
+          <Camera className="h-4 w-4" />
+          Adicionar fotos
+        </button>
+        <input
+          ref={inputFileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          capture="environment"
+          onChange={(e) => {
+            if (e.target.files) {
+              onAdicionarFotos(e.target.files);
+              e.target.value = "";
+            }
+          }}
+          className="hidden"
+        />
+      </div>
+    </div>
   );
 }
 
 function FotoTile({
   foto,
-  idx,
-  total,
+  isPrimeira,
+  isUltima,
   onAbrir,
   onMoverEsquerda,
   onMoverDireita,
   onRemover,
-  onCategoria,
   onLegenda,
-  onDragStartFoto,
-  onDragOverFoto,
-  onDropFoto,
 }: {
   foto: RdoFoto;
-  idx: number;
-  total: number;
+  isPrimeira: boolean;
+  isUltima: boolean;
   onAbrir: () => void;
   onMoverEsquerda: () => void;
   onMoverDireita: () => void;
   onRemover: () => void;
-  onCategoria: (v: string) => void;
   onLegenda: (v: string) => void;
-  onDragStartFoto: () => void;
-  onDragOverFoto: (e: React.DragEvent) => void;
-  onDropFoto: () => void;
 }) {
   return (
-    <div
-      className="space-y-1"
-      draggable
-      onDragStart={onDragStartFoto}
-      onDragOver={onDragOverFoto}
-      onDrop={onDropFoto}
-    >
+    <div className="space-y-1">
       <div className="group relative aspect-square overflow-hidden rounded-sm border border-nue-taupe bg-nue-taupe/40">
         <img
           src={foto.url}
-          alt={foto.legenda || `Foto ${idx + 1}`}
+          alt={foto.legenda || "Foto"}
           className="h-full w-full cursor-zoom-in object-cover"
           onClick={onAbrir}
         />
@@ -1712,7 +1987,7 @@ function FotoTile({
             <button
               type="button"
               onClick={onMoverEsquerda}
-              disabled={idx === 0}
+              disabled={isPrimeira}
               aria-label="Mover para a esquerda"
               className="flex h-7 w-7 items-center justify-center rounded-sm bg-white/90 text-nue-black hover:bg-white disabled:opacity-40"
             >
@@ -1721,7 +1996,7 @@ function FotoTile({
             <button
               type="button"
               onClick={onMoverDireita}
-              disabled={idx === total - 1}
+              disabled={isUltima}
               aria-label="Mover para a direita"
               className="flex h-7 w-7 items-center justify-center rounded-sm bg-white/90 text-nue-black hover:bg-white disabled:opacity-40"
             >
@@ -1738,19 +2013,6 @@ function FotoTile({
           </div>
         </div>
       </div>
-      <select
-        value={foto.categoria ?? ""}
-        onChange={(e) => onCategoria(e.target.value)}
-        className="h-7 w-full rounded-sm border border-nue-taupe bg-white px-1.5 text-nue-black focus:outline-none focus:border-nue-graphite"
-        style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}
-      >
-        <option value="">— Sem categoria —</option>
-        {CATEGORIAS_FOTO.map((c) => (
-          <option key={c.v} value={c.v}>
-            {c.label}
-          </option>
-        ))}
-      </select>
       <input
         type="text"
         value={foto.legenda ?? ""}
@@ -1767,7 +2029,7 @@ function UploadTile({
   upload,
   onRetry,
 }: {
-  upload: { id: string; nome: string; status: "uploading" | "erro"; progresso: number; erro?: string };
+  upload: UploadItem;
   onRetry: () => void;
 }) {
   if (upload.status === "uploading") {

@@ -81,11 +81,19 @@ export function Lightbox({
           alt={foto.legenda || `Foto ${indice + 1}`}
           className="max-h-[80vh] max-w-full rounded-sm object-contain"
         />
-        {(foto.legenda || total > 1) && (
+        {(foto.legenda || foto.ambiente || total > 1) && (
           <figcaption
             className="mt-3 text-center text-sm text-white/90"
             style={{ fontFamily: "var(--font-sans)" }}
           >
+            {foto.ambiente && (
+              <div
+                className="mb-1 text-white/80"
+                style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }}
+              >
+                {foto.ambiente}
+              </div>
+            )}
             {foto.legenda}
             {total > 1 && (
               <span

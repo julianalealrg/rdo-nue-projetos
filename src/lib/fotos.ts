@@ -1,22 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RdoFoto } from "@/lib/diario";
-import type { Database } from "@/integrations/supabase/types";
-
-export type CategoriaFoto = Database["public"]["Enums"]["categoria_foto"];
 
 const BUCKET = "rdo-fotos";
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 const MAX_DIM = 2000;
 const QUALITY = 0.85;
-
-export const CATEGORIAS_FOTO: { v: CategoriaFoto; label: string }[] = [
-  { v: "medicao", label: "Medição" },
-  { v: "antes", label: "Antes" },
-  { v: "durante", label: "Durante" },
-  { v: "depois", label: "Depois" },
-  { v: "ocorrencia", label: "Ocorrência" },
-  { v: "detalhe", label: "Detalhe" },
-];
 
 export class ArquivoMuitoGrandeError extends Error {
   constructor(public nomeArquivo: string) {
@@ -29,7 +17,6 @@ function uuidv4(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
-  // Fallback
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     const v = c === "x" ? r : (r & 0x3) | 0x8;
@@ -50,7 +37,6 @@ async function comprimirImagem(file: File): Promise<Blob> {
 
     const maior = Math.max(img.width, img.height);
     if (maior <= MAX_DIM && file.type === "image/jpeg") {
-      // Já está OK — devolve o próprio arquivo
       return file;
     }
 
@@ -85,6 +71,7 @@ export async function uploadFoto(args: {
   obra_id: string;
   rdo_id: string;
   ordem: number;
+  ambiente?: string;
 }): Promise<RdoFoto> {
   if (args.file.size > MAX_BYTES) {
     throw new ArquivoMuitoGrandeError(args.file.name);
@@ -106,14 +93,13 @@ export async function uploadFoto(args: {
     .insert({
       rdo_id: args.rdo_id,
       url,
-      categoria: null,
       legenda: "",
+      ambiente: args.ambiente ?? "",
       ordem: args.ordem,
     })
     .select("*")
     .single();
   if (insErr || !inserted) {
-    // tenta limpar
     await supabase.storage.from(BUCKET).remove([path]);
     throw new Error(`Falha ao registrar foto: ${insErr?.message ?? "erro"}`);
   }
@@ -139,11 +125,11 @@ export async function removerFoto(foto: RdoFoto): Promise<void> {
 export async function atualizarFotoCampos(args: {
   id: string;
   legenda?: string;
-  categoria?: CategoriaFoto | null;
+  ambiente?: string;
 }): Promise<void> {
-  const patch: { legenda?: string; categoria?: CategoriaFoto | null } = {};
+  const patch: { legenda?: string; ambiente?: string } = {};
   if (args.legenda !== undefined) patch.legenda = args.legenda;
-  if (args.categoria !== undefined) patch.categoria = args.categoria;
+  if (args.ambiente !== undefined) patch.ambiente = args.ambiente;
   const { error } = await supabase
     .from("rdo_fotos")
     .update(patch)
@@ -152,7 +138,6 @@ export async function atualizarFotoCampos(args: {
 }
 
 export async function persistirOrdemFotos(fotos: RdoFoto[]): Promise<void> {
-  // batch update individual
   const updates = fotos.map((f, i) =>
     supabase.from("rdo_fotos").update({ ordem: i }).eq("id", f.id),
   );
@@ -160,6 +145,57 @@ export async function persistirOrdemFotos(fotos: RdoFoto[]): Promise<void> {
   for (const r of results) {
     if (r.error) throw new Error(`Falha ao reordenar: ${r.error.message}`);
   }
+}
+
+/** Renomeia em massa todas as fotos de um RDO de um ambiente para outro. */
+export async function renomearAmbienteRdo(args: {
+  rdo_id: string;
+  de: string;
+  para: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from("rdo_fotos")
+    .update({ ambiente: args.para })
+    .eq("rdo_id", args.rdo_id)
+    .eq("ambiente", args.de);
+  if (error) throw new Error(`Falha ao renomear ambiente: ${error.message}`);
+}
+
+/** Move todas as fotos de um ambiente do RDO para "" (sem ambiente). */
+export async function limparAmbienteRdo(args: {
+  rdo_id: string;
+  ambiente: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from("rdo_fotos")
+    .update({ ambiente: "" })
+    .eq("rdo_id", args.rdo_id)
+    .eq("ambiente", args.ambiente);
+  if (error) throw new Error(`Falha ao limpar ambiente: ${error.message}`);
+}
+
+/** Lista os nomes de ambientes já usados nos RDOs da mesma obra (sem repetir, sem vazios). */
+export async function fetchAmbientesDaObra(obra_id: string): Promise<string[]> {
+  const { data: rdosObra, error: errRdos } = await supabase
+    .from("rdos")
+    .select("id")
+    .eq("obra_id", obra_id);
+  if (errRdos) throw new Error(`Falha ao listar RDOs: ${errRdos.message}`);
+  const ids = (rdosObra ?? []).map((r) => r.id);
+  if (ids.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("rdo_fotos")
+    .select("ambiente")
+    .in("rdo_id", ids)
+    .neq("ambiente", "");
+  if (error) throw new Error(`Falha ao listar ambientes: ${error.message}`);
+
+  const set = new Set<string>();
+  for (const row of data ?? []) {
+    if (row.ambiente) set.add(row.ambiente);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
 
 /* ------------- Assinatura ------------- */

@@ -92,7 +92,7 @@ export type Database = {
       }
       rdo_fotos: {
         Row: {
-          categoria: Database["public"]["Enums"]["categoria_foto"] | null
+          ambiente: string
           created_at: string
           id: string
           legenda: string
@@ -101,7 +101,7 @@ export type Database = {
           url: string
         }
         Insert: {
-          categoria?: Database["public"]["Enums"]["categoria_foto"] | null
+          ambiente?: string
           created_at?: string
           id?: string
           legenda?: string
@@ -110,7 +110,7 @@ export type Database = {
           url: string
         }
         Update: {
-          categoria?: Database["public"]["Enums"]["categoria_foto"] | null
+          ambiente?: string
           created_at?: string
           id?: string
           legenda?: string
@@ -365,13 +365,6 @@ export type Database = {
       gerar_proximo_id_rdo: { Args: never; Returns: string }
     }
     Enums: {
-      categoria_foto:
-        | "medicao"
-        | "antes"
-        | "durante"
-        | "depois"
-        | "ocorrencia"
-        | "detalhe"
       condicao_local: "praticavel" | "parcialmente_praticavel" | "impraticavel"
       obra_status: "ativa" | "concluida" | "pausada"
       prioridade_pendencia: "alta" | "media" | "baixa"
@@ -503,14 +496,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      categoria_foto: [
-        "medicao",
-        "antes",
-        "durante",
-        "depois",
-        "ocorrencia",
-        "detalhe",
-      ],
       condicao_local: ["praticavel", "parcialmente_praticavel", "impraticavel"],
       obra_status: ["ativa", "concluida", "pausada"],
       prioridade_pendencia: ["alta", "media", "baixa"],
