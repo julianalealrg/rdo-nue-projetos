@@ -128,6 +128,16 @@ export function FormularioRdo(props: Props) {
     props.modo === "editar" ? props.rdo.fotos : [],
   );
 
+  // Observações por ambiente
+  const [observacoesAmbiente, setObservacoesAmbiente] = useState<RdoObservacaoAmbiente[]>(
+    props.modo === "editar" ? props.rdo.observacoes_ambiente : [],
+  );
+
+  // Ambientes "abertos manualmente" no RDO (fora dos derivados de fotos/obs/pend/pontos)
+  const [ambientesAbertosNoRdo, setAmbientesAbertosNoRdo] = useState<Set<string>>(
+    new Set(),
+  );
+
   // Ambientes da obra
   const [ambientesObra, setAmbientesObra] = useState<
     Awaited<ReturnType<typeof fetchAmbientesObra>>
