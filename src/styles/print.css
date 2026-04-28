@@ -56,26 +56,36 @@
   padding: 32px 16px 96px;
 }
 
-/* Folha A4: 210 × 297 mm */
+/* Folha A4: 210 × 297 mm
+   Em tela: largura fixa, altura mínima para mostrar página inteira (preview).
+   Em impressão: deixa o conteúdo fluir; quebras vêm via break-before/after. */
 .print-sheet {
   width: 210mm;
-  min-height: 297mm;
   background: #FFFFFF;
   position: relative;
   box-shadow: 0 8px 28px -6px rgba(20, 20, 18, 0.18),
               0 2px 6px -1px rgba(20, 20, 18, 0.08);
   padding: 18mm 16mm 22mm;
-  display: flex;
-  flex-direction: column;
-  break-after: page;
-  page-break-after: always;
-  overflow: hidden;
   font-family: var(--font-sans);
   color: var(--fg);
   font-size: 11pt;
   line-height: 1.5;
 }
-.print-sheet:last-child { break-after: auto; page-break-after: auto; }
+
+/* No preview de tela cada sheet aparece como uma "folha" mínima de A4 */
+@media screen {
+  .print-sheet {
+    min-height: 297mm;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* Quebra de página antes de cada sheet exceto o primeiro */
+.print-sheet + .print-sheet {
+  break-before: page;
+  page-break-before: always;
+}
 
 /* Reset h1-h6 dentro da folha */
 .print-sheet h1,
@@ -125,9 +135,9 @@
 }
 .ph-meta-id { color: var(--fg); font-weight: 500; }
 
-/* ----------- Page footer ----------- */
+/* ----------- Page footer (no fim do sheet) ----------- */
 .pf {
-  margin-top: auto;
+  margin-top: 8mm;
   padding-top: 6mm;
   border-top: 1px solid var(--border-subtle);
   display: flex;
@@ -139,13 +149,18 @@
   letter-spacing: 0.02em;
 }
 .pf-page b { color: var(--fg-secondary); font-weight: 500; }
+@media screen {
+  .pf { margin-top: auto; }
+}
 
 /* ----------- Sheet body ----------- */
 .sheet-body {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6mm;
+}
+@media screen {
+  .sheet-body { flex: 1; }
 }
 
 /* ----------- COVER ----------- */
@@ -296,8 +311,12 @@
   display: flex;
   flex-direction: column;
   gap: 6mm;
-  break-inside: avoid-page;
 }
+/* Mantém o cabeçalho do RDO junto com a primeira seção */
+.rdo-head { break-after: avoid-page; page-break-after: avoid; }
+.rdo-status { break-before: avoid-page; page-break-before: avoid; }
+/* Evita cortar bloco de ambiente no meio */
+.amb { break-inside: avoid-page; page-break-inside: avoid; }
 .rdo-head {
   display: grid;
   grid-template-columns: 1fr auto;
