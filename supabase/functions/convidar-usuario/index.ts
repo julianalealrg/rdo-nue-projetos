@@ -23,6 +23,9 @@ type Body = {
   nome: string;
   iniciais?: string | null;
   papel: "admin" | "supervisor" | "viewer";
+  // Se senha for fornecida: cria conta direto com a senha (email_confirm=true).
+  // Se vazio: manda email de invite padrão Supabase.
+  senha?: string | null;
 };
 
 function jsonResp(status: number, body: unknown) {
@@ -70,8 +73,9 @@ Deno.serve(async (req: Request) => {
   } catch {
     return jsonResp(400, { error: "Body inválido" });
   }
-  const { email, nome, iniciais, papel } = body;
-  if (!email || !nome || !papel) {
+  const { email, nome, iniciais, papel, senha } = body;
+  const emailNorm = (email ?? "").trim().toLowerCase();
+  if (!emailNorm || !nome || !papel) {
     return jsonResp(400, { error: "Campos obrigatórios: email, nome, papel" });
   }
   if (!["admin", "supervisor", "viewer"].includes(papel)) {
@@ -83,14 +87,30 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Envia convite por email
-  const { data: inviteData, error: inviteErr } = await sb.auth.admin.inviteUserByEmail(email, {
-    data: { nome, iniciais: iniciais ?? null, papel },
-  });
-  if (inviteErr || !inviteData?.user) {
-    return jsonResp(400, { error: inviteErr?.message ?? "Falha ao enviar convite" });
+  let userId: string;
+
+  if (senha && senha.length >= 6) {
+    // Modo "senha definida": cria conta já confirmada, sem precisar email de convite.
+    const { data: createData, error: createErr } = await sb.auth.admin.createUser({
+      email: emailNorm,
+      password: senha,
+      email_confirm: true,
+      user_metadata: { nome, iniciais: iniciais ?? null, papel },
+    });
+    if (createErr || !createData?.user) {
+      return jsonResp(400, { error: createErr?.message ?? "Falha ao criar usuário" });
+    }
+    userId = createData.user.id;
+  } else {
+    // Modo "convite por email" (fluxo padrão Supabase invite)
+    const { data: inviteData, error: inviteErr } = await sb.auth.admin.inviteUserByEmail(emailNorm, {
+      data: { nome, iniciais: iniciais ?? null, papel },
+    });
+    if (inviteErr || !inviteData?.user) {
+      return jsonResp(400, { error: inviteErr?.message ?? "Falha ao enviar convite" });
+    }
+    userId = inviteData.user.id;
   }
-  const userId = inviteData.user.id;
 
   // Upsert em user_papeis
   const { error: papelErr } = await sb.from("user_papeis").upsert({

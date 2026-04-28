@@ -21,7 +21,7 @@ function LoginPage() {
     if (carregando) return;
     setCarregando(true);
     try {
-      await login(email.trim(), senha);
+      await login(email.trim().toLowerCase(), senha);
       router.invalidate();
       navigate({ to: "/" });
     } catch (err) {
@@ -40,7 +40,7 @@ function LoginPage() {
     }
     setCarregando(true);
     try {
-      await enviarResetSenha(email.trim());
+      await enviarResetSenha(email.trim().toLowerCase());
       toast.success("Email de reset enviado. Verifique sua caixa de entrada.");
       setModoReset(false);
     } catch (err) {
@@ -72,6 +72,10 @@ function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="email"
               className="mt-1 h-10 w-full rounded-sm border border-nue-taupe bg-nue-offwhite px-3 text-sm text-nue-black focus:border-nue-graphite focus:outline-none"
             />
           </div>

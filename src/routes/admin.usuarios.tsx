@@ -283,6 +283,7 @@ function ModalConvidar({ onClose, onConvidado }: { onClose: () => void; onConvid
   const [nome, setNome] = useState("");
   const [iniciais, setIniciais] = useState("");
   const [papel, setPapel] = useState<Papel>("supervisor");
+  const [senha, setSenha] = useState("Nue@2026");
   const [enviando, setEnviando] = useState(false);
 
   function gerarIniciaisAuto(nomeCompleto: string): string {
@@ -299,15 +300,30 @@ function ModalConvidar({ onClose, onConvidado }: { onClose: () => void; onConvid
       toast.error("Email e nome são obrigatórios");
       return;
     }
+    if (senha.trim().length > 0 && senha.trim().length < 6) {
+      toast.error("Senha inicial deve ter pelo menos 6 caracteres");
+      return;
+    }
     setEnviando(true);
     try {
+      const senhaEnviada = senha.trim();
       await convidarUsuario({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         nome: nome.trim(),
         iniciais: iniciais.trim() || gerarIniciaisAuto(nome),
         papel,
+        senha: senhaEnviada || null,
       });
-      toast.success(`Convite enviado para ${email}. ${nome} vai receber o email pra criar a senha.`);
+      if (senhaEnviada) {
+        toast.success(
+          `${nome} cadastrado. Passe pra ele: email "${email
+            .trim()
+            .toLowerCase()}", senha "${senhaEnviada}".`,
+          { duration: 12000 },
+        );
+      } else {
+        toast.success(`Convite enviado para ${email}. ${nome} vai receber o email pra criar a senha.`);
+      }
       onConvidado();
       onClose();
     } catch (err) {
@@ -374,6 +390,20 @@ function ModalConvidar({ onClose, onConvidado }: { onClose: () => void; onConvid
                 ))}
               </select>
             </div>
+          </div>
+          <div>
+            <label className="block text-[12px] font-medium text-nue-graphite">
+              Senha inicial
+            </label>
+            <input
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              placeholder="Mínimo 6 caracteres (deixe vazio pra mandar email de convite)"
+              className="mt-1 h-10 w-full rounded-sm border border-nue-taupe bg-nue-offwhite px-3 text-sm text-nue-black focus:border-nue-graphite focus:outline-none"
+            />
+            <p className="mt-1 text-[11px] text-nue-graphite">
+              Se preencher: a conta é criada já ativa com essa senha — você passa pra pessoa via WhatsApp. Se deixar vazio: dispara email de convite (cai mais em spam).
+            </p>
           </div>
           <p className="text-[11px] text-nue-graphite">
             <strong>Supervisor</strong>: cria/edita RDOs, assina como ele.{" "}

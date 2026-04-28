@@ -70,6 +70,8 @@ export type ConviteInput = {
   nome: string;
   iniciais: string | null;
   papel: Papel;
+  /** Se preenchido, cria conta direto com a senha (sem email de convite). */
+  senha?: string | null;
 };
 
 export async function convidarUsuario(input: ConviteInput): Promise<void> {
