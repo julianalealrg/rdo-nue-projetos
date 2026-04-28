@@ -21,7 +21,6 @@ import {
   type RdoCompleto,
   type RdoResumo,
   type ObraComSupervisor,
-  type CondicaoLocal,
   type TipoVisita,
   type Prioridade,
 } from "@/lib/diario";
@@ -409,12 +408,6 @@ const TIPO_VISITA_STYLES: Record<TipoVisita, { bg: string; fg: string; label: st
   supervisao_montagem: { bg: "#E8ECE4", fg: "#4A5D43", label: "Supervisão" },
 };
 
-const CONDICAO_STYLES: Record<CondicaoLocal, { bg: string; fg: string; label: string }> = {
-  praticavel: { bg: "#E8ECE4", fg: "#4A5D43", label: "Praticável" },
-  parcialmente_praticavel: { bg: "#F1E9DA", fg: "#A07B3F", label: "Parc. praticável" },
-  impraticavel: { bg: "#F1DDD8", fg: "#8C3A2E", label: "Impraticável" },
-};
-
 const PRIORIDADE_STYLES: Record<Prioridade, { bg: string; fg: string; label: string }> = {
   alta: { bg: "#F1DDD8", fg: "#8C3A2E", label: "Alta" },
   media: { bg: "#F1E9DA", fg: "#A07B3F", label: "Média" },
@@ -462,7 +455,6 @@ function CardRdo({
   const queryClient = useQueryClient();
   const { dia, mesAno } = partesDiaMesAno(rdo.data);
   const tipo = TIPO_VISITA_STYLES[rdo.tipo_visita];
-  const cond = CONDICAO_STYLES[rdo.condicao_local];
   const horario = formatarIntervaloHorario(rdo.hora_chegada, rdo.hora_saida);
 
   const nFotos = rdo.total_fotos;
@@ -542,9 +534,6 @@ function CardRdo({
                 <span className="text-[13px] text-nue-black">{rdo.supervisor.nome}</span>
               </span>
             )}
-            <MiniBadge bg={cond.bg} fg={cond.fg}>
-              {cond.label}
-            </MiniBadge>
             {!rdo.finalizado && (
               <MiniBadge bg="#E6E4DF" fg="#6E6E68">
                 Rascunho
