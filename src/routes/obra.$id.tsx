@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   AlertTriangle,
   ListChecks,
+  FileText,
   Eye,
   Pencil,
   ArrowLeft,
