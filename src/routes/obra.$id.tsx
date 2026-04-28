@@ -99,7 +99,7 @@ function ObraNaoEncontrada() {
       </p>
       <div className="mt-6">
         <Link
-          to="/"
+          to="/obras"
           className="inline-flex h-10 items-center justify-center gap-2 rounded-sm bg-nue-black px-4 text-sm font-medium text-nue-offwhite transition-opacity hover:opacity-90"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -218,7 +218,7 @@ function CabecalhoObra({
           className="text-[12px] text-nue-graphite"
           style={{ fontFamily: "var(--font-mono)" }}
         >
-          <Link to="/" className="hover:text-nue-black hover:underline">
+          <Link to="/obras" className="hover:text-nue-black hover:underline">
             Obras
           </Link>
           <span className="mx-1">/</span>

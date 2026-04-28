@@ -596,7 +596,7 @@ function CabecalhoForm({
         className="flex flex-wrap items-center gap-1 text-[12px] text-nue-graphite"
         style={{ fontFamily: "var(--font-mono)" }}
       >
-        <Link to="/" className="hover:text-nue-black hover:underline">
+        <Link to="/obras" className="hover:text-nue-black hover:underline">
           Obras
         </Link>
         <span>/</span>

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ObrasRouteImport } from './routes/obras'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RdoIdRouteImport } from './routes/rdo.$id'
@@ -18,6 +19,11 @@ import { Route as PrintRdoRdoIdRouteImport } from './routes/print.rdo.$rdoId'
 import { Route as PrintDiarioObraIdRouteImport } from './routes/print.diario.$obraId'
 import { Route as ObraIdRdoNovoRouteImport } from './routes/obra_.$id.rdo.novo'
 
+const ObrasRoute = ObrasRouteImport.update({
+  id: '/obras',
+  path: '/obras',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
@@ -62,6 +68,7 @@ const ObraIdRdoNovoRoute = ObraIdRdoNovoRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/obras': typeof ObrasRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/obras': typeof ObrasRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/obras': typeof ObrasRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/configuracoes'
+    | '/obras'
     | '/obra/$id'
     | '/rdo/$id'
     | '/print/diario/$obraId'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/configuracoes'
+    | '/obras'
     | '/obra/$id'
     | '/rdo/$id'
     | '/print/diario/$obraId'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/configuracoes'
+    | '/obras'
     | '/obra/$id'
     | '/rdo/$id'
     | '/print/diario/$obraId'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
+  ObrasRoute: typeof ObrasRoute
   ObraIdRoute: typeof ObraIdRoute
   RdoIdRoute: typeof RdoIdRoute
   PrintDiarioObraIdRoute: typeof PrintDiarioObraIdRoute
@@ -136,6 +149,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/obras': {
+      id: '/obras'
+      path: '/obras'
+      fullPath: '/obras'
+      preLoaderRoute: typeof ObrasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/configuracoes': {
       id: '/configuracoes'
       path: '/configuracoes'
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
+  ObrasRoute: ObrasRoute,
   ObraIdRoute: ObraIdRoute,
   RdoIdRoute: RdoIdRoute,
   PrintDiarioObraIdRoute: PrintDiarioObraIdRoute,
@@ -208,3 +229,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
