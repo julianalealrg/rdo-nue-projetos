@@ -278,27 +278,26 @@ function Grafico14Dias({
         </span>
       </header>
       <div className="px-4 py-4">
-        <div className="flex h-32 items-end gap-1.5">
+        <div className="flex items-end gap-1.5" style={{ height: 128 }}>
           {serie.map((d) => {
-            const altura = (d.total / max) * 100;
+            const altura = Math.max(2, (d.total / max) * 120);
             const [, m, dia] = d.data.split("-");
             return (
               <div
                 key={d.data}
-                className="flex flex-1 flex-col items-center gap-1"
+                className="flex flex-1 flex-col items-center justify-end"
+                style={{ height: "100%" }}
                 title={`${formatarDataCurta(d.data)} · ${d.total} RDO${d.total === 1 ? "" : "s"}`}
               >
-                <div className="flex h-full w-full items-end">
-                  <div
-                    className={
-                      d.total === 0
-                        ? "h-[2px] w-full bg-nue-taupe/60"
-                        : "w-full rounded-t-sm bg-nue-graphite"
-                    }
-                    style={d.total > 0 ? { height: `${altura}%` } : undefined}
-                  />
-                </div>
-                <span className="text-[10px] text-nue-graphite/70">
+                <div
+                  className={
+                    d.total === 0
+                      ? "w-full bg-nue-taupe/60"
+                      : "w-full rounded-t-sm bg-nue-graphite"
+                  }
+                  style={{ height: `${altura}px` }}
+                />
+                <span className="mt-1 text-[10px] text-nue-graphite/70">
                   {dia}/{m}
                 </span>
               </div>
