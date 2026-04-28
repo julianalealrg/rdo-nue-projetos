@@ -49,6 +49,41 @@ export type Database = {
           },
         ]
       }
+      obra_share_tokens: {
+        Row: {
+          criado_em: string
+          criado_por_user_id: string | null
+          id: string
+          obra_id: string
+          revogado_em: string | null
+          token: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por_user_id?: string | null
+          id?: string
+          obra_id: string
+          revogado_em?: string | null
+          token: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por_user_id?: string | null
+          id?: string
+          obra_id?: string
+          revogado_em?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obra_share_tokens_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       obras: {
         Row: {
           created_at: string
@@ -375,6 +410,7 @@ export type Database = {
           assinatura_url: string | null
           condicao_local: Database["public"]["Enums"]["condicao_local"]
           created_at: string
+          criado_por_user_id: string | null
           data: string
           finalizado: boolean
           hora_chegada: string
@@ -391,6 +427,7 @@ export type Database = {
           assinatura_url?: string | null
           condicao_local: Database["public"]["Enums"]["condicao_local"]
           created_at?: string
+          criado_por_user_id?: string | null
           data: string
           finalizado?: boolean
           hora_chegada: string
@@ -407,6 +444,7 @@ export type Database = {
           assinatura_url?: string | null
           condicao_local?: Database["public"]["Enums"]["condicao_local"]
           created_at?: string
+          criado_por_user_id?: string | null
           data?: string
           finalizado?: boolean
           hora_chegada?: string
@@ -443,6 +481,7 @@ export type Database = {
           id: string
           iniciais: string | null
           nome: string
+          user_id: string | null
         }
         Insert: {
           ativo?: boolean
@@ -450,6 +489,7 @@ export type Database = {
           id?: string
           iniciais?: string | null
           nome: string
+          user_id?: string | null
         }
         Update: {
           ativo?: boolean
@@ -457,6 +497,37 @@ export type Database = {
           id?: string
           iniciais?: string | null
           nome?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_papeis: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          criado_em: string
+          iniciais: string | null
+          nome: string
+          papel: Database["public"]["Enums"]["papel_usuario"]
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          iniciais?: string | null
+          nome?: string
+          papel: Database["public"]["Enums"]["papel_usuario"]
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          iniciais?: string | null
+          nome?: string
+          papel?: Database["public"]["Enums"]["papel_usuario"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -467,10 +538,19 @@ export type Database = {
     Functions: {
       gerar_proximo_id_obra: { Args: never; Returns: string }
       gerar_proximo_id_rdo: { Args: never; Returns: string }
+      gerar_share_token_obra: { Args: { p_obra_id: string }; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
+      pode_escrever: { Args: never; Returns: boolean }
+      resolver_share_token: { Args: { p_token: string }; Returns: string }
+      revogar_share_token_obra: {
+        Args: { p_obra_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       condicao_local: "praticavel" | "parcialmente_praticavel" | "impraticavel"
       obra_status: "ativa" | "concluida" | "pausada"
+      papel_usuario: "admin" | "supervisor" | "viewer"
       prioridade_pendencia: "alta" | "media" | "baixa"
       tipo_visita: "medicao" | "supervisao_montagem"
     }
@@ -602,6 +682,7 @@ export const Constants = {
     Enums: {
       condicao_local: ["praticavel", "parcialmente_praticavel", "impraticavel"],
       obra_status: ["ativa", "concluida", "pausada"],
+      papel_usuario: ["admin", "supervisor", "viewer"],
       prioridade_pendencia: ["alta", "media", "baixa"],
       tipo_visita: ["medicao", "supervisao_montagem"],
     },
