@@ -30,7 +30,7 @@ import {
   formatarIntervaloHorario,
   partesDiaMesAno,
 } from "@/lib/datas";
-import { supabase } from "@/integrations/supabase/client";
+
 import { StatusBadge, SupervisorAvatar } from "@/components/ObraBadges";
 import { Lightbox } from "@/components/Lightbox";
 import { ModalGerenciarAmbientes } from "@/components/ModalGerenciarAmbientes";
