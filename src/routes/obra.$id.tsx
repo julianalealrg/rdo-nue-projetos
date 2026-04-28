@@ -369,19 +369,36 @@ function CardRdo({
   expandido,
   onToggle,
 }: {
-  rdo: RdoCompleto;
+  rdo: RdoResumo;
   obra: ObraComSupervisor;
   expandido: boolean;
   onToggle: () => void;
 }) {
+  const queryClient = useQueryClient();
   const { dia, mesAno } = partesDiaMesAno(rdo.data);
   const tipo = TIPO_VISITA_STYLES[rdo.tipo_visita];
   const cond = CONDICAO_STYLES[rdo.condicao_local];
   const horario = formatarIntervaloHorario(rdo.hora_chegada, rdo.hora_saida);
 
-  const nFotos = rdo.fotos.length;
-  const nPend = rdo.pendencias.length;
-  const nPontos = rdo.pontos_atencao.length;
+  const nFotos = rdo.total_fotos;
+  const nPend = rdo.total_pendencias;
+  const nPontos = rdo.total_pontos;
+
+  // Carrega detalhes só quando expandido (lazy)
+  const detalhesQuery = useQuery({
+    queryKey: rdoDetalhesQueryKey(rdo.id),
+    queryFn: () => fetchRdoDetalhes(rdo.id),
+    enabled: expandido,
+    staleTime: 60_000,
+  });
+
+  function prefetchDetalhes() {
+    queryClient.prefetchQuery({
+      queryKey: rdoDetalhesQueryKey(rdo.id),
+      queryFn: () => fetchRdoDetalhes(rdo.id),
+      staleTime: 60_000,
+    });
+  }
 
   return (
     <article className="overflow-hidden rounded-sm border border-nue-taupe bg-white">
@@ -389,6 +406,8 @@ function CardRdo({
       <button
         type="button"
         onClick={onToggle}
+        onMouseEnter={prefetchDetalhes}
+        onFocus={prefetchDetalhes}
         aria-expanded={expandido}
         className="flex w-full items-stretch gap-3 px-4 py-3.5 text-left transition-colors hover:bg-nue-offwhite"
       >
@@ -484,8 +503,31 @@ function CardRdo({
         </div>
       </button>
 
-      {/* Conteúdo expandido */}
-      {expandido && <ConteudoRdo rdo={rdo} obra={obra} />}
+      {/* Conteúdo expandido (lazy) */}
+      {expandido && (
+        <div className="border-t border-nue-taupe bg-nue-offwhite/40">
+          {detalhesQuery.isLoading && (
+            <div className="px-4 py-6 text-center text-[13px] text-nue-graphite">
+              Carregando detalhes...
+            </div>
+          )}
+          {detalhesQuery.isError && (
+            <div className="px-4 py-4 text-[13px] text-[#8C3A2E]">
+              Erro ao carregar detalhes.{" "}
+              <button
+                type="button"
+                onClick={() => detalhesQuery.refetch()}
+                className="underline"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+          {detalhesQuery.data && (
+            <ConteudoRdo rdo={detalhesQuery.data} obra={obra} />
+          )}
+        </div>
+      )}
     </article>
   );
 }
