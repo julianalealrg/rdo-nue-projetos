@@ -40,6 +40,13 @@ function PrintRdoPage() {
   }, []);
 
   useEffect(() => {
+    if (!data) return;
+    const cliente = data.obra.nome_cliente.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+    const dataCurta = formatarDataCurta(data.rdo.data).replace(/\//g, "-");
+    document.title = `${data.rdo.id} - ${cliente} - ${dataCurta}`;
+  }, [data]);
+
+  useEffect(() => {
     if (!data || auto !== "1") return;
     const t = setTimeout(() => window.print(), 600);
     return () => clearTimeout(t);

@@ -43,6 +43,12 @@ function PrintDiarioPage() {
     return `${hoje}, ${horaAgoraRecife()}`;
   }, []);
 
+  useEffect(() => {
+    if (!data) return;
+    const cliente = data.obra.nome_cliente.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+    document.title = `Diario ${data.obra.id} - ${cliente}`;
+  }, [data]);
+
   // Auto-print quando carregado
   useEffect(() => {
     if (!data || auto !== "1") return;

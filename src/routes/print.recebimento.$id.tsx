@@ -42,6 +42,13 @@ function PrintRecebimentoPage() {
   }, []);
 
   useEffect(() => {
+    if (!rec || !obraData) return;
+    const cliente = obraData.obra.nome_cliente.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+    const dataCurta = formatarDataCurta(rec.data).replace(/\//g, "-");
+    document.title = `Recebimento - ${obraData.obra.id} - ${cliente} - ${dataCurta}`;
+  }, [rec, obraData]);
+
+  useEffect(() => {
     if (!rec || !obraData || auto !== "1") return;
     const t = setTimeout(() => window.print(), 600);
     return () => clearTimeout(t);
