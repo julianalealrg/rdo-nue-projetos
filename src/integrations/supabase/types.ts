@@ -92,6 +92,7 @@ export type Database = {
           motivo_pausa: string
           nome_cliente: string
           observacoes_obra: string
+          onedrive_url: string
           status: Database["public"]["Enums"]["obra_status"]
           supervisor_id: string | null
           updated_at: string
@@ -103,6 +104,7 @@ export type Database = {
           motivo_pausa?: string
           nome_cliente: string
           observacoes_obra?: string
+          onedrive_url?: string
           status?: Database["public"]["Enums"]["obra_status"]
           supervisor_id?: string | null
           updated_at?: string
@@ -114,6 +116,7 @@ export type Database = {
           motivo_pausa?: string
           nome_cliente?: string
           observacoes_obra?: string
+          onedrive_url?: string
           status?: Database["public"]["Enums"]["obra_status"]
           supervisor_id?: string | null
           updated_at?: string
@@ -470,6 +473,85 @@ export type Database = {
             columns: ["supervisor_id"]
             isOneToOne: false
             referencedRelation: "supervisores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recebimento_fotos: {
+        Row: {
+          created_at: string
+          id: string
+          legenda: string
+          ordem: number
+          recebimento_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          legenda?: string
+          ordem?: number
+          recebimento_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          legenda?: string
+          ordem?: number
+          recebimento_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimento_fotos_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "recebimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recebimentos: {
+        Row: {
+          created_at: string
+          criado_por_user_id: string | null
+          data: string
+          descricao: string
+          id: string
+          obra_id: string
+          observacao_avaria: string
+          teve_avaria: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por_user_id?: string | null
+          data?: string
+          descricao?: string
+          id?: string
+          obra_id: string
+          observacao_avaria?: string
+          teve_avaria?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por_user_id?: string | null
+          data?: string
+          descricao?: string
+          id?: string
+          obra_id?: string
+          observacao_avaria?: string
+          teve_avaria?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimentos_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
             referencedColumns: ["id"]
           },
         ]
