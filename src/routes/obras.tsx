@@ -16,6 +16,7 @@ export const Route = createFileRoute("/obras")({
 
 type Vista = "lista" | "grid";
 type StatusFiltro = "ativa" | "pausada" | "concluida";
+type Ordenacao = "recentes" | "az" | "za" | "ultimo_rdo";
 
 function PainelObras() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ function PainelObras() {
   const [statusFiltro, setStatusFiltro] = useState<StatusFiltro[]>([]);
   const [supervisorFiltro, setSupervisorFiltro] = useState<string[]>([]);
   const [vista, setVista] = useState<Vista>("lista");
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>("recentes");
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["painel-obras"],
@@ -34,7 +36,7 @@ function PainelObras() {
   const obrasFiltradas = useMemo(() => {
     if (!data) return [];
     const termo = busca.trim().toLowerCase();
-    return data.obras.filter((o) => {
+    const filtradas = data.obras.filter((o) => {
       if (statusFiltro.length > 0 && !statusFiltro.includes(o.status)) return false;
       if (supervisorFiltro.length > 0) {
         if (!o.supervisor_id || !supervisorFiltro.includes(o.supervisor_id)) return false;
@@ -46,7 +48,36 @@ function PainelObras() {
       }
       return true;
     });
-  }, [data, busca, statusFiltro, supervisorFiltro]);
+
+    const ordenadas = [...filtradas];
+    switch (ordenacao) {
+      case "az":
+        ordenadas.sort((a, b) =>
+          a.nome_cliente.localeCompare(b.nome_cliente, "pt-BR"),
+        );
+        break;
+      case "za":
+        ordenadas.sort((a, b) =>
+          b.nome_cliente.localeCompare(a.nome_cliente, "pt-BR"),
+        );
+        break;
+      case "ultimo_rdo":
+        ordenadas.sort((a, b) => {
+          const da = a.ultimo_rdo ?? "";
+          const db = b.ultimo_rdo ?? "";
+          if (da === db) return 0;
+          if (!da) return 1;
+          if (!db) return -1;
+          return db.localeCompare(da);
+        });
+        break;
+      case "recentes":
+      default:
+        // já vem ordenado por created_at desc do server
+        break;
+    }
+    return ordenadas;
+  }, [data, busca, statusFiltro, supervisorFiltro, ordenacao]);
 
   const temFiltrosAtivos =
     busca.trim().length > 0 || statusFiltro.length > 0 || supervisorFiltro.length > 0;
@@ -97,6 +128,8 @@ function PainelObras() {
         supervisores={data?.supervisores ?? []}
         vista={vista}
         onVistaChange={setVista}
+        ordenacao={ordenacao}
+        onOrdenacaoChange={setOrdenacao}
       />
 
       {/* Estado de erro */}
@@ -224,6 +257,8 @@ function FilterBar({
   supervisores,
   vista,
   onVistaChange,
+  ordenacao,
+  onOrdenacaoChange,
 }: {
   busca: string;
   onBuscaChange: (v: string) => void;
@@ -234,6 +269,8 @@ function FilterBar({
   supervisores: { id: string; nome: string }[];
   vista: Vista;
   onVistaChange: (v: Vista) => void;
+  ordenacao: Ordenacao;
+  onOrdenacaoChange: (v: Ordenacao) => void;
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-sm border border-nue-taupe bg-white p-3 lg:flex-row lg:items-center">
@@ -265,6 +302,18 @@ function FilterBar({
           className="h-9 w-full rounded-sm border border-nue-taupe bg-white pl-8 pr-3 text-sm text-nue-black placeholder:text-nue-graphite/60 focus:border-nue-graphite focus:outline-none"
         />
       </div>
+
+      <select
+        value={ordenacao}
+        onChange={(e) => onOrdenacaoChange(e.target.value as Ordenacao)}
+        className="h-9 rounded-sm border border-nue-taupe bg-white px-2 text-sm text-nue-black focus:border-nue-graphite focus:outline-none"
+        aria-label="Ordenar"
+      >
+        <option value="recentes">Mais recentes</option>
+        <option value="ultimo_rdo">Último RDO</option>
+        <option value="az">A → Z (cliente)</option>
+        <option value="za">Z → A (cliente)</option>
+      </select>
 
       <div className="hidden md:flex items-center gap-1 self-start lg:self-auto">
         <button

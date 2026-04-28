@@ -1,6 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Papel } from "@/lib/auth";
 
+const FUNCTION_URL = (() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const env: any = (import.meta as any).env ?? {};
+  const url = env.VITE_SUPABASE_URL as string | undefined;
+  if (!url) return "";
+  return `${url.replace(/\/$/, "")}/functions/v1/convidar-usuario`;
+})();
+
 export type UsuarioPainel = {
   user_id: string;
   email: string;
@@ -55,4 +63,30 @@ export async function atualizarPerfil(
     .update(campos)
     .eq("user_id", userId);
   if (error) throw new Error(`Falha ao atualizar perfil: ${error.message}`);
+}
+
+export type ConviteInput = {
+  email: string;
+  nome: string;
+  iniciais: string | null;
+  papel: Papel;
+};
+
+export async function convidarUsuario(input: ConviteInput): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("Sem sessão ativa");
+
+  const res = await fetch(FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(body.error ?? `Falha ${res.status}`);
+  }
 }

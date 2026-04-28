@@ -2,13 +2,14 @@ import { useState } from "react";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ShieldCheck, UserPlus, ExternalLink } from "lucide-react";
+import { ShieldCheck, UserPlus } from "lucide-react";
 import { ehAdmin, useSessao, type Papel } from "@/lib/auth";
 import {
   listarUsuarios,
   atualizarPapel,
   alternarAtivo,
   atualizarPerfil,
+  convidarUsuario,
   type UsuarioPainel,
 } from "@/lib/admin";
 
@@ -81,7 +82,12 @@ function PainelAdmin() {
         <ListaUsuarios usuarios={data ?? []} onChange={refetch} />
       )}
 
-      {convidarAberto && <ModalConvidar onClose={() => setConvidarAberto(false)} />}
+      {convidarAberto && (
+        <ModalConvidar
+          onClose={() => setConvidarAberto(false)}
+          onConvidado={refetch}
+        />
+      )}
     </div>
   );
 }
@@ -272,51 +278,126 @@ function LinhaUsuario({
   );
 }
 
-function ModalConvidar({ onClose }: { onClose: () => void }) {
+function ModalConvidar({ onClose, onConvidado }: { onClose: () => void; onConvidado: () => void }) {
+  const [email, setEmail] = useState("");
+  const [nome, setNome] = useState("");
+  const [iniciais, setIniciais] = useState("");
+  const [papel, setPapel] = useState<Papel>("supervisor");
+  const [enviando, setEnviando] = useState(false);
+
+  function gerarIniciaisAuto(nomeCompleto: string): string {
+    const partes = nomeCompleto.trim().split(/\s+/).filter(Boolean);
+    if (partes.length === 0) return "";
+    if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (enviando) return;
+    if (!email.trim() || !nome.trim()) {
+      toast.error("Email e nome são obrigatórios");
+      return;
+    }
+    setEnviando(true);
+    try {
+      await convidarUsuario({
+        email: email.trim(),
+        nome: nome.trim(),
+        iniciais: iniciais.trim() || gerarIniciaisAuto(nome),
+        papel,
+      });
+      toast.success(`Convite enviado para ${email}. ${nome} vai receber o email pra criar a senha.`);
+      onConvidado();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao enviar convite");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-nue-black/60 px-4">
       <div className="w-full max-w-md rounded-sm bg-white p-5 shadow-lg">
         <h2 className="text-xl text-nue-black">Convidar usuário</h2>
-        <p className="mt-2 text-sm text-nue-graphite">
-          Por enquanto, o convite é feito direto pelo Supabase Dashboard. Siga os passos:
+        <p className="mt-1 text-[13px] text-nue-graphite">
+          A pessoa vai receber um email pra criar a senha. Nome e papel já ficam preenchidos.
         </p>
-        <ol className="mt-3 space-y-2 text-[13px] text-nue-black">
-          <li>
-            <strong>1.</strong> Abra o Supabase Dashboard → Authentication → Users → Add user
-          </li>
-          <li>
-            <strong>2.</strong> Escolha "Send invite" e informe o email da pessoa
-          </li>
-          <li>
-            <strong>3.</strong> O sistema criará automaticamente uma entrada com papel padrão{" "}
-            <code className="rounded-sm bg-nue-taupe/40 px-1 py-0.5 text-[11px]">viewer</code>
-          </li>
-          <li>
-            <strong>4.</strong> De volta nesta página, ajuste o papel (admin/supervisor/viewer) e o
-            perfil (nome, iniciais)
-          </li>
-        </ol>
-        <p className="mt-3 text-[12px] text-nue-graphite">
-          Em uma próxima entrega, o convite será automatizado direto neste painel.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <a
-            href="https://supabase.com/dashboard"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            Abrir Supabase
-          </a>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-9 items-center justify-center rounded-sm bg-nue-black px-3 text-sm font-medium text-nue-offwhite hover:opacity-90"
-          >
-            Entendi
-          </button>
-        </div>
+        <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+          <div>
+            <label className="block text-[12px] font-medium text-nue-graphite">Nome completo</label>
+            <input
+              value={nome}
+              onChange={(e) => {
+                setNome(e.target.value);
+                if (!iniciais) setIniciais(gerarIniciaisAuto(e.target.value));
+              }}
+              placeholder="Ex: Gustavo Braga"
+              required
+              className="mt-1 h-10 w-full rounded-sm border border-nue-taupe bg-nue-offwhite px-3 text-sm text-nue-black focus:border-nue-graphite focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-[12px] font-medium text-nue-graphite">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@nuesuperficies.com.br"
+              required
+              className="mt-1 h-10 w-full rounded-sm border border-nue-taupe bg-nue-offwhite px-3 text-sm text-nue-black focus:border-nue-graphite focus:outline-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] font-medium text-nue-graphite">Iniciais</label>
+              <input
+                value={iniciais}
+                onChange={(e) => setIniciais(e.target.value.toUpperCase().slice(0, 3))}
+                placeholder="GB"
+                className="mt-1 h-10 w-full rounded-sm border border-nue-taupe bg-nue-offwhite px-3 text-sm uppercase text-nue-black focus:border-nue-graphite focus:outline-none"
+                style={{ fontFamily: "var(--font-mono)" }}
+              />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-nue-graphite">Papel</label>
+              <select
+                value={papel}
+                onChange={(e) => setPapel(e.target.value as Papel)}
+                className="mt-1 h-10 w-full rounded-sm border border-nue-taupe bg-white px-2 text-sm text-nue-black focus:border-nue-graphite focus:outline-none"
+              >
+                {PAPEIS.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <p className="text-[11px] text-nue-graphite">
+            <strong>Supervisor</strong>: cria/edita RDOs, assina como ele.{" "}
+            <strong>Viewer</strong>: só lê.{" "}
+            <strong>Admin</strong>: tudo.
+          </p>
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={enviando}
+              className="inline-flex h-9 items-center justify-center rounded-sm border border-nue-taupe bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30 disabled:opacity-60"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={enviando}
+              className="inline-flex h-9 items-center justify-center rounded-sm bg-nue-black px-3 text-sm font-medium text-nue-offwhite hover:opacity-90 disabled:opacity-60"
+            >
+              {enviando ? "Enviando..." : "Enviar convite"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
