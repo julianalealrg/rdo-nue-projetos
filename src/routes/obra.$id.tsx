@@ -599,7 +599,7 @@ function ConteudoRdo({ rdo, obra }: { rdo: RdoCompleto; obra: ObraComSupervisor 
   const gruposAmbiente = Array.from(mapaAmb.values()).sort((a, b) => a.ordem - b.ordem);
 
   return (
-    <div className="border-t border-nue-taupe bg-nue-offwhite/40 px-4 py-4">
+    <div className="px-4 py-4">
       <div className="space-y-4">
         {rdo.registros.trim() && (
           <section>
