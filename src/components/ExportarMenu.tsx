@@ -13,10 +13,13 @@ const OPCOES: { tipo: TipoExport; label: string }[] = [
 
 export function ExportarMenu({
   escopo,
+  resolveEscopo,
   variante = "header",
   rotulo,
 }: {
-  escopo: EscopoArg;
+  escopo?: EscopoArg;
+  /** Quando fornecido, é chamado no clique para resolver o escopo (ex.: carregar RDOs completos sob demanda). */
+  resolveEscopo?: () => Promise<EscopoArg>;
   variante?: Variante;
   rotulo?: string;
 }) {
@@ -31,7 +34,9 @@ export function ExportarMenu({
       tipo === "excel" ? "Gerando Excel..." : "Abrindo relatório...",
     );
     try {
-      await exportar({ tipo, escopo });
+      const escopoFinal = escopo ?? (resolveEscopo ? await resolveEscopo() : null);
+      if (!escopoFinal) throw new Error("Escopo de exportação ausente");
+      await exportar({ tipo, escopo: escopoFinal });
       toast.success(
         tipo === "excel"
           ? "Excel baixado"
