@@ -18,6 +18,7 @@ import { Route as RdoIdRouteImport } from './routes/rdo.$id'
 import { Route as ObraIdRouteImport } from './routes/obra.$id'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as RdoIdEditarRouteImport } from './routes/rdo_.$id.editar'
+import { Route as PrintRecebimentoIdRouteImport } from './routes/print.recebimento.$id'
 import { Route as PrintRdoRdoIdRouteImport } from './routes/print.rdo.$rdoId'
 import { Route as PrintDiarioObraIdRouteImport } from './routes/print.diario.$obraId'
 import { Route as PObraIdRouteImport } from './routes/p.obra.$id'
@@ -69,6 +70,11 @@ const RdoIdEditarRoute = RdoIdEditarRouteImport.update({
   path: '/rdo/$id/editar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrintRecebimentoIdRoute = PrintRecebimentoIdRouteImport.update({
+  id: '/print/recebimento/$id',
+  path: '/print/recebimento/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrintRdoRdoIdRoute = PrintRdoRdoIdRouteImport.update({
   id: '/print/rdo/$rdoId',
   path: '/print/rdo/$rdoId',
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/p/obra/$id': typeof PObraIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
   '/print/rdo/$rdoId': typeof PrintRdoRdoIdRoute
+  '/print/recebimento/$id': typeof PrintRecebimentoIdRoute
   '/rdo/$id/editar': typeof RdoIdEditarRoute
   '/obra/$id/rdo/novo': typeof ObraIdRdoNovoRoute
   '/obra/$id/recebimento/novo': typeof ObraIdRecebimentoNovoRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/p/obra/$id': typeof PObraIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
   '/print/rdo/$rdoId': typeof PrintRdoRdoIdRoute
+  '/print/recebimento/$id': typeof PrintRecebimentoIdRoute
   '/rdo/$id/editar': typeof RdoIdEditarRoute
   '/obra/$id/rdo/novo': typeof ObraIdRdoNovoRoute
   '/obra/$id/recebimento/novo': typeof ObraIdRecebimentoNovoRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/p/obra/$id': typeof PObraIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
   '/print/rdo/$rdoId': typeof PrintRdoRdoIdRoute
+  '/print/recebimento/$id': typeof PrintRecebimentoIdRoute
   '/rdo_/$id/editar': typeof RdoIdEditarRoute
   '/obra_/$id/rdo/novo': typeof ObraIdRdoNovoRoute
   '/obra_/$id/recebimento/novo': typeof ObraIdRecebimentoNovoRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/p/obra/$id'
     | '/print/diario/$obraId'
     | '/print/rdo/$rdoId'
+    | '/print/recebimento/$id'
     | '/rdo/$id/editar'
     | '/obra/$id/rdo/novo'
     | '/obra/$id/recebimento/novo'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/p/obra/$id'
     | '/print/diario/$obraId'
     | '/print/rdo/$rdoId'
+    | '/print/recebimento/$id'
     | '/rdo/$id/editar'
     | '/obra/$id/rdo/novo'
     | '/obra/$id/recebimento/novo'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/p/obra/$id'
     | '/print/diario/$obraId'
     | '/print/rdo/$rdoId'
+    | '/print/recebimento/$id'
     | '/rdo_/$id/editar'
     | '/obra_/$id/rdo/novo'
     | '/obra_/$id/recebimento/novo'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   PObraIdRoute: typeof PObraIdRoute
   PrintDiarioObraIdRoute: typeof PrintDiarioObraIdRoute
   PrintRdoRdoIdRoute: typeof PrintRdoRdoIdRoute
+  PrintRecebimentoIdRoute: typeof PrintRecebimentoIdRoute
   RdoIdEditarRoute: typeof RdoIdEditarRoute
   ObraIdRdoNovoRoute: typeof ObraIdRdoNovoRoute
   ObraIdRecebimentoNovoRoute: typeof ObraIdRecebimentoNovoRoute
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RdoIdEditarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/print/recebimento/$id': {
+      id: '/print/recebimento/$id'
+      path: '/print/recebimento/$id'
+      fullPath: '/print/recebimento/$id'
+      preLoaderRoute: typeof PrintRecebimentoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/print/rdo/$rdoId': {
       id: '/print/rdo/$rdoId'
       path: '/print/rdo/$rdoId'
@@ -327,6 +347,7 @@ const rootRouteChildren: RootRouteChildren = {
   PObraIdRoute: PObraIdRoute,
   PrintDiarioObraIdRoute: PrintDiarioObraIdRoute,
   PrintRdoRdoIdRoute: PrintRdoRdoIdRoute,
+  PrintRecebimentoIdRoute: PrintRecebimentoIdRoute,
   RdoIdEditarRoute: RdoIdEditarRoute,
   ObraIdRdoNovoRoute: ObraIdRdoNovoRoute,
   ObraIdRecebimentoNovoRoute: ObraIdRecebimentoNovoRoute,

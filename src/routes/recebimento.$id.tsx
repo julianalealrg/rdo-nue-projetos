@@ -8,6 +8,7 @@ import {
   Check,
   Edit,
   Image as ImageIcon,
+  Printer,
   Save,
   Trash2,
   X,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/recebimentos";
 import { fetchDiarioObraResumo } from "@/lib/diario";
 import { formatarDataCurta } from "@/lib/datas";
+import { useSessao, podeEscrever } from "@/lib/auth";
 
 export const Route = createFileRoute("/recebimento/$id")({
   component: RecebimentoDetalhePage,
@@ -32,6 +34,8 @@ function RecebimentoDetalhePage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const router = useRouter();
+  const sessao = useSessao();
+  const escrever = podeEscrever(sessao ?? null);
   const [editando, setEditando] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
@@ -131,24 +135,42 @@ function RecebimentoDetalhePage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {!editando ? (
+            {!editando && (
+              <>
+                {escrever && (
+                  <button
+                    type="button"
+                    onClick={() => setEditando(true)}
+                    className="inline-flex h-9 items-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Editar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `/print/recebimento/${encodeURIComponent(id)}`;
+                    const w = window.open(url, "_blank", "noopener,noreferrer");
+                    if (!w) toast.error("Permita pop-ups para imprimir.");
+                  }}
+                  className="inline-flex h-9 items-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir / PDF
+                </button>
+              </>
+            )}
+            {escrever && (
               <button
                 type="button"
-                onClick={() => setEditando(true)}
-                className="inline-flex h-9 items-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
+                onClick={deletar}
+                className="inline-flex h-9 items-center gap-2 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-danger hover:bg-danger/5"
               >
-                <Edit className="h-4 w-4" />
-                Editar
+                <Trash2 className="h-4 w-4" />
+                Excluir
               </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={deletar}
-              className="inline-flex h-9 items-center gap-2 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-danger hover:bg-danger/5"
-            >
-              <Trash2 className="h-4 w-4" />
-              Excluir
-            </button>
+            )}
           </div>
         </div>
       </header>
@@ -179,6 +201,8 @@ function Visualizacao({
   obraId: string;
   onMudouFotos: () => void;
 }) {
+  const sessao = useSessao();
+  const escrever = podeEscrever(sessao ?? null);
   const [fotos, setFotos] = useState<RecebimentoFoto[]>(recebimento.fotos);
   const [uploading, setUploading] = useState(false);
 
@@ -245,29 +269,31 @@ function Visualizacao({
             <ImageIcon className="h-4 w-4" />
             Fotos ({fotos.length})
           </h2>
-          <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-sm border border-nue-graphite bg-white px-2.5 text-[13px] text-nue-black hover:bg-nue-taupe/30">
-            {uploading ? (
-              "Carregando…"
-            ) : (
-              <>
-                <Camera className="h-3.5 w-3.5" />
-                Adicionar
-              </>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              disabled={uploading}
-              onChange={(e) => {
-                if (e.target.files) {
-                  void adicionar(e.target.files);
-                  e.target.value = "";
-                }
-              }}
-            />
-          </label>
+          {escrever && (
+            <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-sm border border-nue-graphite bg-white px-2.5 text-[13px] text-nue-black hover:bg-nue-taupe/30">
+              {uploading ? (
+                "Carregando…"
+              ) : (
+                <>
+                  <Camera className="h-3.5 w-3.5" />
+                  Adicionar
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                disabled={uploading}
+                onChange={(e) => {
+                  if (e.target.files) {
+                    void adicionar(e.target.files);
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </label>
+          )}
         </div>
         {fotos.length === 0 ? (
           <p className="text-sm text-nue-graphite/70">Nenhuma foto.</p>
@@ -286,14 +312,16 @@ function Visualizacao({
                     className="h-full w-full object-cover"
                   />
                 </a>
-                <button
-                  type="button"
-                  onClick={() => remover(foto)}
-                  className="absolute right-1 top-1 hidden rounded-sm bg-nue-black/80 p-1 text-nue-offwhite group-hover:block"
-                  aria-label="Remover foto"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                {escrever && (
+                  <button
+                    type="button"
+                    onClick={() => remover(foto)}
+                    className="absolute right-1 top-1 hidden rounded-sm bg-nue-black/80 p-1 text-nue-offwhite group-hover:block"
+                    aria-label="Remover foto"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             ))}
           </div>

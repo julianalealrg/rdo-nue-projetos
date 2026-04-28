@@ -17,3 +17,12 @@ export async function atualizarStatusObra(
     .eq("id", obraId);
   if (error) throw new Error(`Falha ao atualizar status: ${error.message}`);
 }
+
+export async function atualizarOneDriveUrl(obraId: string, url: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from("obras")
+    .update({ onedrive_url: url })
+    .eq("id", obraId);
+  if (error) throw new Error(`Falha ao atualizar link OneDrive: ${error.message}`);
+}

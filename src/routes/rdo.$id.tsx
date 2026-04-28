@@ -27,6 +27,7 @@ import { SupervisorAvatar } from "@/components/ObraBadges";
 import { Lightbox } from "@/components/Lightbox";
 import { ModalVersoesRdo } from "@/components/ModalVersoesRdo";
 import { ExportarMenu } from "@/components/ExportarMenu";
+import { useSessao, podeEscrever } from "@/lib/auth";
 
 export const Route = createFileRoute("/rdo/$id")({
   component: RdoDetalheRoute,
@@ -510,6 +511,8 @@ function Cabecalho({
   horario: string;
   onAbrirVersoes: () => void;
 }) {
+  const sessao = useSessao();
+  const escrever = podeEscrever(sessao ?? null);
   return (
     <section
       className="rounded-sm border border-nue-taupe bg-white"
@@ -536,14 +539,16 @@ function Cabecalho({
         </nav>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to="/rdo/$id/editar"
-            params={{ id: rdo.id }}
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-sm bg-nue-black px-3 text-sm font-medium text-nue-offwhite hover:opacity-90"
-          >
-            <Pencil className="h-4 w-4" />
-            Editar
-          </Link>
+          {escrever && (
+            <Link
+              to="/rdo/$id/editar"
+              params={{ id: rdo.id }}
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-sm bg-nue-black px-3 text-sm font-medium text-nue-offwhite hover:opacity-90"
+            >
+              <Pencil className="h-4 w-4" />
+              Editar
+            </Link>
+          )}
           <ExportarMenu
             escopo={{ tipo: "rdo", obra, rdo }}
             rotulo="Imprimir"

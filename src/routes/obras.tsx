@@ -9,6 +9,7 @@ import { diarioResumoQueryKey } from "@/routes/obra.$id";
 import { formatarDataRelativa } from "@/lib/datas";
 import { ModalNovaObra } from "@/components/ModalNovaObra";
 import { StatusBadge, SupervisorAvatar } from "@/components/ObraBadges";
+import { useSessao, podeEscrever } from "@/lib/auth";
 
 export const Route = createFileRoute("/obras")({
   component: PainelObras,
@@ -21,6 +22,8 @@ type Ordenacao = "recentes" | "az" | "za" | "ultimo_rdo";
 function PainelObras() {
   const navigate = useNavigate();
   const router = useRouter();
+  const sessao = useSessao();
+  const escrever = podeEscrever(sessao ?? null);
   const [modalAberto, setModalAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<StatusFiltro[]>([]);
@@ -104,14 +107,16 @@ function PainelObras() {
             Acompanhamento das obras em medição e montagem
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setModalAberto(true)}
-          className="inline-flex h-10 items-center justify-center gap-2 self-start rounded-sm bg-nue-black px-4 text-sm font-medium text-nue-offwhite transition-opacity hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" />
-          Nova obra
-        </button>
+        {escrever && (
+          <button
+            type="button"
+            onClick={() => setModalAberto(true)}
+            className="inline-flex h-10 items-center justify-center gap-2 self-start rounded-sm bg-nue-black px-4 text-sm font-medium text-nue-offwhite transition-opacity hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            Nova obra
+          </button>
+        )}
       </header>
 
       {/* Stat tiles */}

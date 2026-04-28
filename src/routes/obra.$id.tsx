@@ -37,7 +37,9 @@ import { ModalGerenciarAmbientes } from "@/components/ModalGerenciarAmbientes";
 import { ExportarMenu } from "@/components/ExportarMenu";
 import { AlterarStatusObra } from "@/components/AlterarStatusObra";
 import { CompartilharObra } from "@/components/CompartilharObra";
+import { LinkOneDriveObra } from "@/components/LinkOneDriveObra";
 import { listarRecebimentosPorObra, type RecebimentoResumo } from "@/lib/recebimentos";
+import { useSessao, podeEscrever } from "@/lib/auth";
 
 type TimelineItem =
   | { kind: "rdo"; data: string; ordemSec: string; payload: RdoResumo }
@@ -254,42 +256,11 @@ function CabecalhoObra({
           <span className="text-nue-black">{obra.id}</span>
         </nav>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to="/obra/$id/rdo/novo"
-            params={{ id: obra.id }}
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-sm bg-nue-black px-3 text-sm font-medium text-nue-offwhite transition-opacity hover:opacity-90"
-          >
-            <Plus className="h-4 w-4" />
-            Novo RDO
-          </Link>
-          <Link
-            to="/obra/$id/recebimento/novo"
-            params={{ id: obra.id }}
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
-          >
-            <Plus className="h-4 w-4" />
-            Novo recebimento
-          </Link>
-          <button
-            type="button"
-            onClick={onGerenciarAmbientes}
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
-          >
-            <Settings className="h-4 w-4" />
-            Gerenciar ambientes
-          </button>
-          <ExportarMenu
-            resolveEscopo={resolveEscopoDiario}
-            rotulo="Exportar diário"
-          />
-          <CompartilharObra obraId={obra.id} />
-          <AlterarStatusObra
-            obraId={obra.id}
-            statusAtual={obra.status}
-            motivoPausaAtual={obra.motivo_pausa ?? ""}
-          />
-        </div>
+        <BotoesCabecalho
+          obra={obra}
+          onGerenciarAmbientes={onGerenciarAmbientes}
+          resolveEscopoDiario={resolveEscopoDiario}
+        />
       </div>
 
       <div className="mt-3">
@@ -350,7 +321,67 @@ function CabecalhoObra({
           <span className="text-nue-black">{periodo}</span>
         </Metadado>
       </div>
+
+      <div className="mt-4">
+        <LinkOneDriveObra obraId={obra.id} urlAtual={obra.onedrive_url ?? ""} />
+      </div>
     </section>
+  );
+}
+
+function BotoesCabecalho({
+  obra,
+  onGerenciarAmbientes,
+  resolveEscopoDiario,
+}: {
+  obra: ObraComSupervisor;
+  onGerenciarAmbientes: () => void;
+  resolveEscopoDiario: () => Promise<{ tipo: "diario"; obra: ObraComSupervisor; rdos: RdoCompleto[] }>;
+}) {
+  const sessao = useSessao();
+  const escrever = podeEscrever(sessao ?? null);
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {escrever && (
+        <Link
+          to="/obra/$id/rdo/novo"
+          params={{ id: obra.id }}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-sm bg-nue-black px-3 text-sm font-medium text-nue-offwhite transition-opacity hover:opacity-90"
+        >
+          <Plus className="h-4 w-4" />
+          Novo RDO
+        </Link>
+      )}
+      {escrever && (
+        <Link
+          to="/obra/$id/recebimento/novo"
+          params={{ id: obra.id }}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
+        >
+          <Plus className="h-4 w-4" />
+          Novo recebimento
+        </Link>
+      )}
+      {escrever && (
+        <button
+          type="button"
+          onClick={onGerenciarAmbientes}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
+        >
+          <Settings className="h-4 w-4" />
+          Gerenciar ambientes
+        </button>
+      )}
+      <ExportarMenu resolveEscopo={resolveEscopoDiario} rotulo="Exportar diário" />
+      {escrever && <CompartilharObra obraId={obra.id} />}
+      {escrever && (
+        <AlterarStatusObra
+          obraId={obra.id}
+          statusAtual={obra.status}
+          motivoPausaAtual={obra.motivo_pausa ?? ""}
+        />
+      )}
+    </div>
   );
 }
 
@@ -426,6 +457,8 @@ function CardRdo({
   expandido: boolean;
   onToggle: () => void;
 }) {
+  const sessao = useSessao();
+  const escrever = podeEscrever(sessao ?? null);
   const queryClient = useQueryClient();
   const { dia, mesAno } = partesDiaMesAno(rdo.data);
   const tipo = TIPO_VISITA_STYLES[rdo.tipo_visita];
@@ -598,6 +631,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 function ConteudoRdo({ rdo, obra }: { rdo: RdoCompleto; obra: ObraComSupervisor }) {
+  const sessao = useSessao();
+  const escrever = podeEscrever(sessao ?? null);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const pendGerais = rdo.pendencias.filter((p) => p.ambiente_id == null);
@@ -854,14 +889,16 @@ function ConteudoRdo({ rdo, obra }: { rdo: RdoCompleto; obra: ObraComSupervisor 
           <Eye className="h-3.5 w-3.5" />
           Ver completo
         </Link>
-        <Link
-          to="/rdo/$id/editar"
-          params={{ id: rdo.id }}
-          className="inline-flex items-center gap-1.5 text-[13px] text-nue-black hover:underline"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Editar
-        </Link>
+        {escrever && (
+          <Link
+            to="/rdo/$id/editar"
+            params={{ id: rdo.id }}
+            className="inline-flex items-center gap-1.5 text-[13px] text-nue-black hover:underline"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Editar
+          </Link>
+        )}
         <ExportarMenu
           escopo={{ tipo: "rdo", obra, rdo }}
           variante="inline"

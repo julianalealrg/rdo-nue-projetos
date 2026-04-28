@@ -35,6 +35,9 @@ export type RdoCompleto = Rdo & {
 export type ObraComSupervisor = Obra & {
   supervisor: Pick<Supervisor, "id" | "nome" | "iniciais"> | null;
   ambientes?: Ambiente[];
+  // NOTE: coluna adicionada na migration 20260428145229 — opcional aqui até
+  // o Supabase regenerar types e a coluna entrar em Tables<"obras">.
+  onedrive_url?: string;
 };
 
 export type DiarioObraData = {
