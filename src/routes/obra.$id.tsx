@@ -196,16 +196,16 @@ function DiarioObraView({
 
 function CabecalhoObra({
   obra,
-  rdos,
   totalRdos,
   periodo,
   onGerenciarAmbientes,
+  resolveEscopoDiario,
 }: {
   obra: ObraComSupervisor;
-  rdos: RdoCompleto[];
   totalRdos: number;
   periodo: string;
   onGerenciarAmbientes: () => void;
+  resolveEscopoDiario: () => Promise<{ tipo: "diario"; obra: ObraComSupervisor; rdos: RdoCompleto[] }>;
 }) {
   return (
     <section
@@ -242,7 +242,7 @@ function CabecalhoObra({
             Gerenciar ambientes
           </button>
           <ExportarMenu
-            escopo={{ tipo: "diario", obra, rdos }}
+            resolveEscopo={resolveEscopoDiario}
             rotulo="Exportar diário"
           />
         </div>
