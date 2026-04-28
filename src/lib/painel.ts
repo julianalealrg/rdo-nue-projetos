@@ -70,6 +70,7 @@ export async function fetchPainelObras(): Promise<DashboardData> {
     status: o.status,
     motivo_pausa: o.motivo_pausa,
     observacoes_obra: o.observacoes_obra,
+    onedrive_url: o.onedrive_url,
     supervisor_id: o.supervisor_id,
     created_at: o.created_at,
     updated_at: o.updated_at,
