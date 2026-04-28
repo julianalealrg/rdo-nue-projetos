@@ -482,10 +482,19 @@ function GridObras({ obras }: { obras: ObraComResumo[] }) {
 }
 
 function CardObra({ obra }: { obra: ObraComResumo }) {
+  const queryClient = useQueryClient();
+  const prefetch = () =>
+    queryClient.prefetchQuery({
+      queryKey: diarioResumoQueryKey(obra.id),
+      queryFn: () => fetchDiarioObraResumo(obra.id),
+      staleTime: 30_000,
+    });
   return (
     <Link
       to="/obra/$id"
       params={{ id: obra.id }}
+      onMouseEnter={prefetch}
+      onFocus={prefetch}
       className="block rounded-sm border border-nue-taupe bg-white p-4 transition-colors hover:bg-nue-taupe/20"
     >
       <div className="flex items-center justify-between">
