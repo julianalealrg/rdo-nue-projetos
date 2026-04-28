@@ -31,7 +31,7 @@ export async function fetchPainelObras(): Promise<DashboardData> {
     supabase
       .from("obras")
       .select(
-        "id, nome_cliente, endereco, status, motivo_pausa, observacoes_obra, supervisor_id, created_at, updated_at, supervisor:supervisores(id, nome, iniciais)"
+        "id, nome_cliente, endereco, status, motivo_pausa, observacoes_obra, onedrive_url, supervisor_id, created_at, updated_at, supervisor:supervisores(id, nome, iniciais)"
       )
       .order("created_at", { ascending: false }),
     supabase
