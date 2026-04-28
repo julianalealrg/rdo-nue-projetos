@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Route as ObrasRoute } from "./obras";
 
+const ObrasComponent = ObrasRoute.options.component;
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -10,5 +12,10 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Painel de obras do Sistema RDO Obras NUE Projetos" },
     ],
   }),
-  component: ObrasRoute.options.component!,
+  component: IndexPage,
 });
+
+function IndexPage() {
+  if (!ObrasComponent) return null;
+  return <ObrasComponent />;
+}
