@@ -1,0 +1,609 @@
+/* ============================================================
+   PDF do Diário de Obra — A4 retrato, monocromático NUE
+   Carregado SOMENTE nas rotas /print/*
+   ============================================================ */
+
+/* Variáveis derivadas dos tokens NUE (já existem no Tailwind v4) */
+.print-root {
+  --fg: var(--color-nue-black, #141412);
+  --fg-secondary: var(--color-nue-graphite, #41423E);
+  --fg-tertiary: #6B6C68;
+  --fg-muted: #8E8F8B;
+
+  --bg: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+
+  --border-subtle: #E6E4DF;
+  --border-default: #D6D1CC;
+  --border-strong: var(--color-nue-graphite, #41423E);
+
+  --nue-success: #4A5D43;
+  --nue-warning: #A07B3F;
+  --nue-danger: #8C3A2E;
+  --nue-gray-100: #EFEEE9;
+  --nue-gray-200: #E6E4DF;
+
+  --font-display: 'Questrial', 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+.print-root {
+  background: #C8C8C4;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  color: var(--fg);
+  font-size: 11pt;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.print-root * { box-sizing: border-box; }
+
+/* Wrapper do "papel" no preview de tela */
+.print-doc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 16px 96px;
+}
+
+/* Folha A4: 210 × 297 mm */
+.print-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  background: #FFFFFF;
+  position: relative;
+  box-shadow: 0 8px 28px -6px rgba(20, 20, 18, 0.18),
+              0 2px 6px -1px rgba(20, 20, 18, 0.08);
+  padding: 18mm 16mm 22mm;
+  display: flex;
+  flex-direction: column;
+  break-after: page;
+  page-break-after: always;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--fg);
+  font-size: 11pt;
+  line-height: 1.5;
+}
+.print-sheet:last-child { break-after: auto; page-break-after: auto; }
+
+/* Reset h1-h6 dentro da folha */
+.print-sheet h1,
+.print-sheet h2,
+.print-sheet h3,
+.print-sheet h4,
+.print-sheet h5,
+.print-sheet h6 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--fg);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* ----------- Page header ----------- */
+.ph {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 8mm;
+  margin-bottom: 8mm;
+}
+.ph-mark { display: flex; flex-direction: column; gap: 2px; }
+.ph-brand {
+  font-family: var(--font-display);
+  font-size: 9pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+.ph-doctype {
+  font-family: var(--font-display);
+  font-size: 7.5pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+}
+.ph-meta {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 8pt;
+  color: var(--fg-secondary);
+  line-height: 1.6;
+}
+.ph-meta-id { color: var(--fg); font-weight: 500; }
+
+/* ----------- Page footer ----------- */
+.pf {
+  margin-top: auto;
+  padding-top: 6mm;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 7.5pt;
+  color: var(--fg-tertiary);
+  letter-spacing: 0.02em;
+}
+.pf-page b { color: var(--fg-secondary); font-weight: 500; }
+
+/* ----------- Sheet body ----------- */
+.sheet-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+}
+
+/* ----------- COVER ----------- */
+.cover-eyebrow {
+  font-family: var(--font-display);
+  font-size: 8pt;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+  margin-bottom: 6mm;
+}
+.cover-title {
+  font-family: var(--font-display);
+  font-size: 36pt;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+  margin: 0 0 4mm;
+  font-weight: 400;
+}
+.cover-sub {
+  font-size: 13pt;
+  color: var(--fg-secondary);
+  max-width: 140mm;
+  line-height: 1.4;
+  margin-bottom: 14mm;
+}
+
+.cover-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--border-default);
+  margin-bottom: 8mm;
+}
+.cover-grid .cell {
+  padding: 4mm 0;
+  border-bottom: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: 36mm 1fr;
+  gap: 6mm;
+  align-items: baseline;
+}
+.cover-grid .cell:nth-child(odd) { padding-right: 6mm; }
+.cover-grid .cell:nth-child(even) {
+  padding-left: 6mm;
+  border-left: 1px solid var(--border-subtle);
+}
+.cover-grid .cell .lbl {
+  font-size: 7.5pt;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+  font-weight: 500;
+}
+.cover-grid .cell .val {
+  font-size: 11pt;
+  color: var(--fg);
+  font-weight: 500;
+}
+.cover-grid .cell .val.mono {
+  font-family: var(--font-mono);
+  font-size: 10pt;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* KPIs */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin: 6mm 0 10mm;
+  border-top: 1px solid var(--fg);
+  border-bottom: 1px solid var(--border-default);
+}
+.kpis .kpi {
+  padding: 5mm 5mm;
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  border-right: 1px solid var(--border-subtle);
+}
+.kpis .kpi:last-child { border-right: 0; }
+.kpis .kpi .kpi-lbl {
+  font-size: 7pt;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+  font-weight: 500;
+}
+.kpis .kpi .kpi-val {
+  font-family: var(--font-display);
+  font-size: 26pt;
+  line-height: 1;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+}
+.kpis .kpi .kpi-hint {
+  font-size: 8pt;
+  color: var(--fg-tertiary);
+  margin-top: 1mm;
+}
+
+/* TOC */
+.toc {
+  margin-top: 6mm;
+  border-top: 1px solid var(--border-default);
+}
+.toc .toc-head {
+  font-family: var(--font-display);
+  font-size: 8pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 4mm 0 3mm;
+  color: var(--fg-tertiary);
+}
+.toc .toc-row {
+  display: grid;
+  grid-template-columns: 24mm 1fr auto auto;
+  gap: 8mm;
+  padding: 3mm 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 10pt;
+  align-items: baseline;
+}
+.toc .toc-row .toc-id {
+  font-family: var(--font-mono);
+  color: var(--fg);
+  font-weight: 500;
+  font-size: 9.5pt;
+}
+.toc .toc-row .toc-time {
+  font-family: var(--font-mono);
+  color: var(--fg-tertiary);
+  font-size: 9pt;
+}
+.toc .toc-row .toc-pratic {
+  font-size: 8pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-secondary);
+  font-weight: 500;
+}
+
+/* ----------- RDO common parts ----------- */
+.rdo {
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+  break-inside: avoid-page;
+}
+.rdo-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6mm;
+  padding-bottom: 5mm;
+  border-bottom: 1px solid var(--fg);
+  align-items: end;
+}
+.rdo-eyebrow {
+  font-family: var(--font-display);
+  font-size: 7.5pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+  margin-bottom: 3mm;
+}
+.rdo-id {
+  font-family: var(--font-mono);
+  font-size: 22pt;
+  font-weight: 500;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.rdo-meta {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 9pt;
+  color: var(--fg-secondary);
+  line-height: 1.55;
+}
+.rdo-meta b { color: var(--fg); font-weight: 500; }
+
+.rdo-status {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  padding: 3mm 0 0;
+  font-size: 9pt;
+}
+.pratic-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fg-secondary);
+  flex-shrink: 0;
+}
+.pratic-praticavel { background: var(--nue-success); }
+.pratic-parcial { background: var(--nue-warning); }
+.pratic-impraticavel { background: var(--nue-danger); }
+.pratic-label {
+  font-size: 8pt;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--fg);
+}
+.pratic-sub {
+  margin-left: auto;
+  font-size: 8pt;
+  font-family: var(--font-mono);
+  color: var(--fg-tertiary);
+}
+
+/* Section heading */
+.sec-h {
+  font-family: var(--font-display);
+  font-size: 8pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+  font-weight: 400;
+  margin: 0 0 2.5mm;
+}
+.sec-body {
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: var(--fg);
+  white-space: pre-wrap;
+}
+.sec-body p + p { margin-top: 2mm; }
+.sec-empty {
+  font-size: 9.5pt;
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+/* Pendências e atenção */
+.list-pend { display: flex; flex-direction: column; gap: 0; }
+.list-pend .pend {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8mm;
+  padding: 2.5mm 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 10pt;
+  align-items: baseline;
+}
+.list-pend .pend:first-child { border-top: 1px solid var(--border-default); }
+.list-pend .pend:last-child { border-bottom: 1px solid var(--border-default); }
+.list-pend .pend .pend-prio {
+  font-family: var(--font-mono);
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-tertiary);
+}
+.list-pend .pend .pend-prio.alta { color: var(--nue-danger); font-weight: 500; }
+.list-pend .pend .pend-prio.media { color: var(--nue-warning); font-weight: 500; }
+.list-pend .pend .pend-prio.baixa { color: var(--fg-tertiary); }
+
+.list-aten {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid var(--border-default);
+}
+.list-aten .aten {
+  display: grid;
+  grid-template-columns: 6mm 1fr;
+  padding: 2.5mm 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 10pt;
+  line-height: 1.45;
+}
+.list-aten .aten:last-child { border-bottom: 1px solid var(--border-default); }
+.aten-mark {
+  color: var(--nue-warning);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+/* Ambientes — grid */
+.amb-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5mm;
+}
+.amb {
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 4mm;
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+  background: #FFFFFF;
+  break-inside: avoid;
+}
+.amb-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 3mm;
+  padding-bottom: 2.5mm;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.amb-name { font-size: 11pt; font-weight: 500; color: var(--fg); }
+.amb-fotos {
+  font-family: var(--font-mono);
+  font-size: 8.5pt;
+  color: var(--fg-tertiary);
+}
+.amb-body {
+  font-size: 9.5pt;
+  line-height: 1.5;
+  color: var(--fg-secondary);
+  white-space: pre-wrap;
+}
+.amb-photos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2mm;
+  margin-top: 1mm;
+}
+.amb-photo {
+  aspect-ratio: 4 / 3;
+  background: var(--nue-gray-100);
+  border: 1px solid var(--border-subtle);
+  border-radius: 2px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.amb-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.amb-photo .ph-tag {
+  position: absolute;
+  bottom: 1.5mm;
+  left: 1.5mm;
+  font-family: var(--font-mono);
+  font-size: 6.5pt;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 1px 4px;
+  border-radius: 1px;
+  color: var(--fg-secondary);
+  max-width: calc(100% - 3mm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.amb-pend-list, .amb-aten-list {
+  margin-top: 2mm;
+  padding-top: 2mm;
+  border-top: 1px dashed var(--border-subtle);
+  font-size: 9pt;
+  color: var(--fg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5mm;
+}
+.amb-pend-list .lbl, .amb-aten-list .lbl {
+  font-family: var(--font-display);
+  font-size: 7pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+}
+
+/* Signature line */
+.sig {
+  margin-top: 4mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 3mm;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 9pt;
+  color: var(--fg-secondary);
+  gap: 6mm;
+}
+.sig-info { flex: 1; }
+.sig-name { color: var(--fg); font-weight: 500; }
+.sig-img {
+  max-height: 18mm;
+  max-width: 60mm;
+  object-fit: contain;
+  display: block;
+}
+
+/* ============================================================
+   V3 — Formulário técnico
+   ============================================================ */
+.rdo-v3 .form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--fg);
+  border-radius: 0;
+  background: #fff;
+}
+.rdo-v3 .form-grid .field {
+  padding: 3mm 4mm;
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  min-height: 14mm;
+}
+.rdo-v3 .form-grid .field:nth-child(4n) { border-right: 0; }
+.rdo-v3 .form-grid .field.span-2 { grid-column: span 2; }
+.rdo-v3 .form-grid .field.span-4 { grid-column: span 4; }
+.rdo-v3 .form-grid .field .lbl {
+  font-size: 6.5pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-tertiary);
+  font-weight: 500;
+}
+.rdo-v3 .form-grid .field .val {
+  font-size: 10pt;
+  color: var(--fg);
+  font-weight: 500;
+}
+.rdo-v3 .form-grid .field .val.mono {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.rdo-v3 .form-grid .field.body-field { min-height: 28mm; }
+.rdo-v3 .form-grid .field.body-field .val {
+  font-weight: 400;
+  font-size: 9.5pt;
+  line-height: 1.5;
+  color: var(--fg-secondary);
+  white-space: pre-wrap;
+}
+.rdo-v3 .form-grid .field.last-row { border-bottom: 0; }
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print {
+  html, body, .print-root { background: #FFFFFF !important; }
+  .print-doc { padding: 0; gap: 0; }
+  .print-sheet {
+    box-shadow: none;
+    margin: 0;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 18mm 16mm 22mm;
+  }
+  .print-no-print { display: none !important; }
+}

@@ -6,9 +6,8 @@ import { exportar, type EscopoArg, type TipoExport } from "@/lib/export";
 type Variante = "header" | "inline";
 
 const OPCOES: { tipo: TipoExport; label: string }[] = [
-  { tipo: "pdf-completo", label: "Imprimir relatório (PDF)" },
-  { tipo: "pdf-detalhado", label: "Imprimir relatório detalhado (PDF)" },
-  { tipo: "pdf-sem-fotos", label: "Imprimir relatório sem fotos (PDF)" },
+  { tipo: "pdf-cliente", label: "PDF cliente (denso)" },
+  { tipo: "pdf-tecnico", label: "PDF técnico (formulário)" },
   { tipo: "excel", label: "Excel (xlsx)" },
 ];
 
@@ -28,10 +27,17 @@ export function ExportarMenu({
     setAberto(false);
     if (gerando) return;
     setGerando(true);
-    const toastId = toast.loading("Gerando relatório...");
+    const toastId = toast.loading(
+      tipo === "excel" ? "Gerando Excel..." : "Abrindo relatório...",
+    );
     try {
       await exportar({ tipo, escopo });
-      toast.success("Relatório baixado", { id: toastId });
+      toast.success(
+        tipo === "excel"
+          ? "Excel baixado"
+          : "Relatório aberto em nova aba — use o diálogo de impressão para salvar como PDF",
+        { id: toastId },
+      );
     } catch (err) {
       toast.error(
         `Não foi possível gerar o relatório: ${
