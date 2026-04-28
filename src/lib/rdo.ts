@@ -192,6 +192,8 @@ export async function criarRdoInicial(args: {
     throw new Error("Campos obrigatórios mínimos não preenchidos");
   }
   const id = await gerarProximoIdRdo();
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData.user?.id ?? null;
   const { error } = await supabase.from("rdos").insert({
     id,
     obra_id: args.obra_id,
@@ -204,6 +206,8 @@ export async function criarRdoInicial(args: {
     registros: args.form.registros,
     proximos_passos: args.form.proximos_passos,
     finalizado: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ...(userId ? { criado_por_user_id: userId } : {}) as any,
   });
   if (error) throw new Error(`Falha ao criar RDO: ${error.message}`);
   return id;

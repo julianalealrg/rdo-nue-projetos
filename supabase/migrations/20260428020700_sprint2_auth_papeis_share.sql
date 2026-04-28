@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.user_papeis (
   nome text NOT NULL DEFAULT '',
   iniciais text,
   criado_em timestamptz NOT NULL DEFAULT now(),
-  atualizado_em timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_papeis_papel ON public.user_papeis(papel);

@@ -19,6 +19,7 @@ import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as RdoIdEditarRouteImport } from './routes/rdo_.$id.editar'
 import { Route as PrintRdoRdoIdRouteImport } from './routes/print.rdo.$rdoId'
 import { Route as PrintDiarioObraIdRouteImport } from './routes/print.diario.$obraId'
+import { Route as PObraIdRouteImport } from './routes/p.obra.$id'
 import { Route as ObraIdRdoNovoRouteImport } from './routes/obra_.$id.rdo.novo'
 
 const ObrasRoute = ObrasRouteImport.update({
@@ -71,6 +72,11 @@ const PrintDiarioObraIdRoute = PrintDiarioObraIdRouteImport.update({
   path: '/print/diario/$obraId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PObraIdRoute = PObraIdRouteImport.update({
+  id: '/p/obra/$id',
+  path: '/p/obra/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ObraIdRdoNovoRoute = ObraIdRdoNovoRouteImport.update({
   id: '/obra_/$id/rdo/novo',
   path: '/obra/$id/rdo/novo',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
+  '/p/obra/$id': typeof PObraIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
   '/print/rdo/$rdoId': typeof PrintRdoRdoIdRoute
   '/rdo/$id/editar': typeof RdoIdEditarRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
+  '/p/obra/$id': typeof PObraIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
   '/print/rdo/$rdoId': typeof PrintRdoRdoIdRoute
   '/rdo/$id/editar': typeof RdoIdEditarRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
+  '/p/obra/$id': typeof PObraIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
   '/print/rdo/$rdoId': typeof PrintRdoRdoIdRoute
   '/rdo_/$id/editar': typeof RdoIdEditarRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/obra/$id'
     | '/rdo/$id'
+    | '/p/obra/$id'
     | '/print/diario/$obraId'
     | '/print/rdo/$rdoId'
     | '/rdo/$id/editar'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/obra/$id'
     | '/rdo/$id'
+    | '/p/obra/$id'
     | '/print/diario/$obraId'
     | '/print/rdo/$rdoId'
     | '/rdo/$id/editar'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/obra/$id'
     | '/rdo/$id'
+    | '/p/obra/$id'
     | '/print/diario/$obraId'
     | '/print/rdo/$rdoId'
     | '/rdo_/$id/editar'
@@ -167,6 +179,7 @@ export interface RootRouteChildren {
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   ObraIdRoute: typeof ObraIdRoute
   RdoIdRoute: typeof RdoIdRoute
+  PObraIdRoute: typeof PObraIdRoute
   PrintDiarioObraIdRoute: typeof PrintDiarioObraIdRoute
   PrintRdoRdoIdRoute: typeof PrintRdoRdoIdRoute
   RdoIdEditarRoute: typeof RdoIdEditarRoute
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrintDiarioObraIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/p/obra/$id': {
+      id: '/p/obra/$id'
+      path: '/p/obra/$id'
+      fullPath: '/p/obra/$id'
+      preLoaderRoute: typeof PObraIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/obra_/$id/rdo/novo': {
       id: '/obra_/$id/rdo/novo'
       path: '/obra/$id/rdo/novo'
@@ -263,6 +283,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminUsuariosRoute: AdminUsuariosRoute,
   ObraIdRoute: ObraIdRoute,
   RdoIdRoute: RdoIdRoute,
+  PObraIdRoute: PObraIdRoute,
   PrintDiarioObraIdRoute: PrintDiarioObraIdRoute,
   PrintRdoRdoIdRoute: PrintRdoRdoIdRoute,
   RdoIdEditarRoute: RdoIdEditarRoute,

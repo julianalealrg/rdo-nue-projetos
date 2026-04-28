@@ -40,6 +40,7 @@ import {
   uploadFoto,
 } from "@/lib/fotos";
 import { criarAmbiente, fetchAmbientesObra } from "@/lib/ambientes";
+import { useSessao } from "@/lib/auth";
 import {
   removerAmbienteDoRdo,
   removerObservacaoAmbiente,
@@ -2701,6 +2702,8 @@ function SecaoAssinatura({
   onDirty: () => void;
   mensagemBloqueio: string;
 }) {
+  const sessao = useSessao();
+  const assinanteNome = sessao?.nome || supervisor?.nome || "—";
   const desabilitado = !rdoId;
   const mostrarCanvas = !assinaturaUrl || substituindo;
   const [hasStrokes, setHasStrokes] = useState(false);
@@ -2746,6 +2749,12 @@ function SecaoAssinatura({
             </div>
           ) : mostrarCanvas ? (
             <div>
+              <p
+                className="mb-2 text-nue-graphite"
+                style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+              >
+                Assinando como <span className="text-nue-black">{assinanteNome}</span>
+              </p>
               <div className="relative rounded-sm border border-nue-taupe bg-white" style={{ height: 200 }}>
                 <SignatureCanvas
                   ref={(el) => {
@@ -2812,7 +2821,7 @@ function SecaoAssinatura({
                 className="mt-2 text-nue-graphite"
                 style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
               >
-                Assinada por {supervisor?.nome ?? "—"}
+                Assinada por {assinanteNome}
               </p>
               <button
                 type="button"

@@ -36,6 +36,7 @@ import { Lightbox } from "@/components/Lightbox";
 import { ModalGerenciarAmbientes } from "@/components/ModalGerenciarAmbientes";
 import { ExportarMenu } from "@/components/ExportarMenu";
 import { AlterarStatusObra } from "@/components/AlterarStatusObra";
+import { CompartilharObra } from "@/components/CompartilharObra";
 
 export const Route = createFileRoute("/obra/$id")({
   component: DiarioObra,
@@ -244,6 +245,7 @@ function CabecalhoObra({
             resolveEscopo={resolveEscopoDiario}
             rotulo="Exportar diário"
           />
+          <CompartilharObra obraId={obra.id} />
           <AlterarStatusObra
             obraId={obra.id}
             statusAtual={obra.status}
