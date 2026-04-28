@@ -1,25 +1,24 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronDown,
   ChevronRight,
   Plus,
-  Download,
   Image as ImageIcon,
   AlertTriangle,
   ListChecks,
-  FileText,
   Eye,
   Pencil,
-  Printer,
   ArrowLeft,
   Settings,
 } from "lucide-react";
 import {
-  fetchDiarioObra,
+  fetchDiarioObraResumo,
+  fetchRdoDetalhes,
   ObraNaoEncontradaError,
   type RdoCompleto,
+  type RdoResumo,
   type ObraComSupervisor,
   type CondicaoLocal,
   type TipoVisita,
@@ -30,6 +29,7 @@ import {
   formatarIntervaloHorario,
   partesDiaMesAno,
 } from "@/lib/datas";
+import { supabase } from "@/integrations/supabase/client";
 import { StatusBadge, SupervisorAvatar } from "@/components/ObraBadges";
 import { Lightbox } from "@/components/Lightbox";
 import { ModalGerenciarAmbientes } from "@/components/ModalGerenciarAmbientes";
@@ -39,11 +39,16 @@ export const Route = createFileRoute("/obra/$id")({
   component: DiarioObra,
 });
 
+const PAGINA = 10;
+
+export const rdoDetalhesQueryKey = (rdoId: string) => ["rdo-detalhes", rdoId];
+export const diarioResumoQueryKey = (obraId: string) => ["diario-obra-resumo", obraId];
+
 function DiarioObra() {
   const { id } = Route.useParams();
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ["diario-obra", id],
-    queryFn: () => fetchDiarioObra(id),
+    queryKey: diarioResumoQueryKey(id),
+    queryFn: () => fetchDiarioObraResumo(id),
     retry: (count, err) => !(err instanceof ObraNaoEncontradaError) && count < 2,
   });
 
@@ -109,10 +114,11 @@ function DiarioObraView({
   rdos,
 }: {
   obra: ObraComSupervisor;
-  rdos: RdoCompleto[];
+  rdos: RdoResumo[];
 }) {
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [gerenciarAmbientesAberto, setGerenciarAmbientesAberto] = useState(false);
+  const [visiveis, setVisiveis] = useState(PAGINA);
 
   const periodo = useMemo(() => {
     if (rdos.length === 0) return "—";
@@ -132,21 +138,30 @@ function DiarioObraView({
     });
   }
 
+  const rdosVisiveis = rdos.slice(0, visiveis);
+  const restantes = rdos.length - rdosVisiveis.length;
+
+  /** Resolver para o ExportarMenu do diário inteiro: carrega todos os RDOs completos sob demanda. */
+  async function resolveEscopoDiario() {
+    const detalhes = await Promise.all(rdos.map((r) => fetchRdoDetalhes(r.id)));
+    return { tipo: "diario" as const, obra, rdos: detalhes };
+  }
+
   return (
     <div className="space-y-4">
       <CabecalhoObra
         obra={obra}
-        rdos={rdos}
         totalRdos={rdos.length}
         periodo={periodo}
         onGerenciarAmbientes={() => setGerenciarAmbientesAberto(true)}
+        resolveEscopoDiario={resolveEscopoDiario}
       />
 
       {rdos.length === 0 ? (
         <EmptyStateRdos obraId={obra.id} />
       ) : (
         <div className="space-y-3">
-          {rdos.map((rdo) => (
+          {rdosVisiveis.map((rdo) => (
             <CardRdo
               key={rdo.id}
               rdo={rdo}
@@ -155,6 +170,17 @@ function DiarioObraView({
               onToggle={() => toggle(rdo.id)}
             />
           ))}
+          {restantes > 0 && (
+            <div className="flex justify-center pt-2">
+              <button
+                type="button"
+                onClick={() => setVisiveis((v) => v + PAGINA)}
+                className="inline-flex h-9 items-center justify-center rounded-sm border border-nue-graphite bg-white px-4 text-sm text-nue-black hover:bg-nue-taupe/30"
+              >
+                Carregar mais ({restantes} restantes)
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -167,8 +193,6 @@ function DiarioObraView({
     </div>
   );
 }
-
-/* ----------------------------- Cabeçalho ----------------------------- */
 
 function CabecalhoObra({
   obra,
