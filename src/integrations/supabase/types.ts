@@ -504,29 +504,29 @@ export type Database = {
       user_papeis: {
         Row: {
           ativo: boolean
-          atualizado_em: string
           criado_em: string
           iniciais: string | null
           nome: string
           papel: Database["public"]["Enums"]["papel_usuario"]
+          updated_at: string
           user_id: string
         }
         Insert: {
           ativo?: boolean
-          atualizado_em?: string
           criado_em?: string
           iniciais?: string | null
           nome?: string
           papel: Database["public"]["Enums"]["papel_usuario"]
+          updated_at?: string
           user_id: string
         }
         Update: {
           ativo?: boolean
-          atualizado_em?: string
           criado_em?: string
           iniciais?: string | null
           nome?: string
           papel?: Database["public"]["Enums"]["papel_usuario"]
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
