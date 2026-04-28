@@ -84,10 +84,7 @@ export function ExportarMenu({
             aria-hidden
           />
           <div
-            className={
-              "absolute top-full z-20 mt-1 min-w-[260px] rounded-sm border border-nue-taupe bg-white shadow-md " +
-              (variante === "header" ? "right-0" : "left-0")
-            }
+            className="absolute right-0 top-full z-20 mt-1 min-w-[260px] rounded-sm border border-nue-taupe bg-white shadow-md"
           >
             <ul className="py-1">
               {OPCOES.map((o) => (

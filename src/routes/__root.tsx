@@ -1,6 +1,7 @@
 import {
   Outlet,
   Link,
+  Navigate,
   createRootRouteWithContext,
   HeadContent,
   Scripts,
@@ -12,6 +13,7 @@ import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { AppShell } from "@/components/AppShell";
+import { useSessao } from "@/lib/auth";
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -77,20 +79,66 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function RotaPublica(pathname: string): boolean {
+  return (
+    pathname.startsWith("/print/") ||
+    pathname.startsWith("/p/") ||
+    pathname === "/login"
+  );
+}
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const sessao = useSessao();
+
+  if (RotaPublica(pathname)) {
+    return <>{children}</>;
+  }
+
+  if (sessao === undefined) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-nue-offwhite">
+        <p className="text-sm text-nue-graphite">Carregando…</p>
+      </div>
+    );
+  }
+
+  if (sessao === null) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!sessao.ativo) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-nue-offwhite px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl text-nue-black">Conta desativada</h1>
+          <p className="mt-2 text-sm text-nue-graphite">
+            Sua conta está desativada. Entre em contato com o admin.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const isPrintRoute = useRouterState({
-    select: (s) => s.location.pathname.startsWith("/print/"),
-  });
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const semChrome = pathname.startsWith("/print/") || pathname.startsWith("/p/") || pathname === "/login";
+
   return (
     <QueryClientProvider client={queryClient}>
-      {isPrintRoute ? (
-        <Outlet />
-      ) : (
-        <AppShell>
+      <AuthGate>
+        {semChrome ? (
           <Outlet />
-        </AppShell>
-      )}
+        ) : (
+          <AppShell>
+            <Outlet />
+          </AppShell>
+        )}
+      </AuthGate>
       <Toaster
         position="top-right"
         toastOptions={{

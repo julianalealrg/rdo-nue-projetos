@@ -413,7 +413,7 @@ function CardRdo({
   }
 
   return (
-    <article className="overflow-hidden rounded-sm border border-nue-taupe bg-white">
+    <article className="rounded-sm border border-nue-taupe bg-white">
       {/* Topo (clicável) */}
       <button
         type="button"

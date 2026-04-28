@@ -1,20 +1,24 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, Settings, Menu, Search, X, Home } from "lucide-react";
+import { Building2, Settings, Menu, Search, X, Home, LogOut, Users, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import logoUrl from "@/assets/logo-nue-projetos.svg";
 import { fetchPainelObras } from "@/lib/painel";
 import type { ObraComResumo } from "@/lib/painel";
+import { ehAdmin, logout, useSessao } from "@/lib/auth";
 
 type NavItem = {
-  to: "/" | "/obras" | "/configuracoes";
+  to: "/" | "/obras" | "/configuracoes" | "/admin/usuarios";
   label: string;
   icon: typeof Building2;
+  apenasAdmin?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Início", icon: Home },
   { to: "/obras", label: "Obras", icon: Building2 },
+  { to: "/admin/usuarios", label: "Usuários", icon: Users, apenasAdmin: true },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
@@ -25,6 +29,21 @@ function SidebarContent({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const sessao = useSessao();
+  const navigate = useNavigate();
+  const isAdmin = ehAdmin(sessao ?? null);
+  const itensVisiveis = NAV_ITEMS.filter((it) => !it.apenasAdmin || isAdmin);
+
+  async function handleSair() {
+    try {
+      await logout();
+      onNavigate?.();
+      navigate({ to: "/login" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao sair");
+    }
+  }
+
   return (
     <div className="flex h-full w-60 flex-col bg-nue-black text-nue-offwhite">
       <div className="flex justify-center px-4 py-4">
@@ -37,7 +56,7 @@ function SidebarContent({
       </div>
       <nav className="mt-2 flex-1 px-2">
         <ul className="space-y-1">
-          {NAV_ITEMS.map((item) => {
+          {itensVisiveis.map((item) => {
             const active =
               item.to === "/"
                 ? pathname === "/"
@@ -66,8 +85,47 @@ function SidebarContent({
           })}
         </ul>
       </nav>
-      <div className="px-4 py-3 text-[11px] tracking-wider text-nue-offwhite/40 uppercase">
-        NUE Projetos
+
+      {/* Bloco do usuário */}
+      <div className="border-t border-white/10 px-3 py-3">
+        {sessao ? (
+          <>
+            <div className="mb-2 flex items-center gap-2">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-nue-offwhite/15 text-[11px] font-medium uppercase"
+                style={{ fontFamily: "var(--font-mono)" }}
+                title={sessao.nome}
+              >
+                {(sessao.iniciais ?? sessao.nome.slice(0, 2)).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12px] text-nue-offwhite">{sessao.nome}</p>
+                <p className="truncate text-[10px] uppercase tracking-wider text-nue-offwhite/50">
+                  {sessao.papel === "admin" && (
+                    <span className="inline-flex items-center gap-1">
+                      <ShieldCheck className="h-3 w-3" /> admin
+                    </span>
+                  )}
+                  {sessao.papel === "supervisor" && "supervisor"}
+                  {sessao.papel === "viewer" && "viewer"}
+                  {!sessao.papel && "sem papel"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleSair}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] text-nue-offwhite/70 hover:bg-white/5 hover:text-nue-offwhite"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sair
+            </button>
+          </>
+        ) : (
+          <p className="text-[11px] tracking-wider text-nue-offwhite/40 uppercase">
+            NUE Projetos
+          </p>
+        )}
       </div>
     </div>
   );

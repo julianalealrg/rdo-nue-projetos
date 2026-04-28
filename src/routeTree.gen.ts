@@ -10,10 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ObrasRouteImport } from './routes/obras'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RdoIdRouteImport } from './routes/rdo.$id'
 import { Route as ObraIdRouteImport } from './routes/obra.$id'
+import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as RdoIdEditarRouteImport } from './routes/rdo_.$id.editar'
 import { Route as PrintRdoRdoIdRouteImport } from './routes/print.rdo.$rdoId'
 import { Route as PrintDiarioObraIdRouteImport } from './routes/print.diario.$obraId'
@@ -22,6 +24,11 @@ import { Route as ObraIdRdoNovoRouteImport } from './routes/obra_.$id.rdo.novo'
 const ObrasRoute = ObrasRouteImport.update({
   id: '/obras',
   path: '/obras',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -42,6 +49,11 @@ const RdoIdRoute = RdoIdRouteImport.update({
 const ObraIdRoute = ObraIdRouteImport.update({
   id: '/obra/$id',
   path: '/obra/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
+  id: '/admin/usuarios',
+  path: '/admin/usuarios',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RdoIdEditarRoute = RdoIdEditarRouteImport.update({
@@ -68,7 +80,9 @@ const ObraIdRdoNovoRoute = ObraIdRdoNovoRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/login': typeof LoginRoute
   '/obras': typeof ObrasRoute
+  '/admin/usuarios': typeof AdminUsuariosRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
@@ -79,7 +93,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/login': typeof LoginRoute
   '/obras': typeof ObrasRoute
+  '/admin/usuarios': typeof AdminUsuariosRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
@@ -91,7 +107,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/login': typeof LoginRoute
   '/obras': typeof ObrasRoute
+  '/admin/usuarios': typeof AdminUsuariosRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
@@ -104,7 +122,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/configuracoes'
+    | '/login'
     | '/obras'
+    | '/admin/usuarios'
     | '/obra/$id'
     | '/rdo/$id'
     | '/print/diario/$obraId'
@@ -115,7 +135,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/configuracoes'
+    | '/login'
     | '/obras'
+    | '/admin/usuarios'
     | '/obra/$id'
     | '/rdo/$id'
     | '/print/diario/$obraId'
@@ -126,7 +148,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/configuracoes'
+    | '/login'
     | '/obras'
+    | '/admin/usuarios'
     | '/obra/$id'
     | '/rdo/$id'
     | '/print/diario/$obraId'
@@ -138,7 +162,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
+  LoginRoute: typeof LoginRoute
   ObrasRoute: typeof ObrasRoute
+  AdminUsuariosRoute: typeof AdminUsuariosRoute
   ObraIdRoute: typeof ObraIdRoute
   RdoIdRoute: typeof RdoIdRoute
   PrintDiarioObraIdRoute: typeof PrintDiarioObraIdRoute
@@ -154,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/obras'
       fullPath: '/obras'
       preLoaderRoute: typeof ObrasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes': {
@@ -182,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/obra/$id'
       fullPath: '/obra/$id'
       preLoaderRoute: typeof ObraIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/usuarios': {
+      id: '/admin/usuarios'
+      path: '/admin/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AdminUsuariosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rdo_/$id/editar': {
@@ -218,7 +258,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
+  LoginRoute: LoginRoute,
   ObrasRoute: ObrasRoute,
+  AdminUsuariosRoute: AdminUsuariosRoute,
   ObraIdRoute: ObraIdRoute,
   RdoIdRoute: RdoIdRoute,
   PrintDiarioObraIdRoute: PrintDiarioObraIdRoute,
