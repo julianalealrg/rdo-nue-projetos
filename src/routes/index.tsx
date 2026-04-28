@@ -201,7 +201,7 @@ function PendenciasCriticas({
               params={{ id: p.rdo_id }}
               className="block px-4 py-3 hover:bg-nue-offwhite"
             >
-              <p className="text-sm text-nue-black line-clamp-2">{p.texto}</p>
+              <p className="text-sm text-nue-black line-clamp-2">{p.descricao}</p>
               <p className="mt-1 text-[12px] text-nue-graphite">
                 {p.cliente}
                 {p.ambiente_nome ? ` · ${p.ambiente_nome}` : ""}

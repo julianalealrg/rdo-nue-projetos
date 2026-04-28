@@ -21,7 +21,7 @@ export type DashboardObraSemRegistro = {
 
 export type DashboardPendenciaCritica = {
   id: string;
-  texto: string;
+  descricao: string;
   rdo_id: string;
   obra_id: string;
   cliente: string;
@@ -99,7 +99,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     supabase
       .from("rdo_pendencias")
       .select(
-        "id, texto, rdo_id, ambiente_id, ambiente:obra_ambientes(id, nome), rdo:rdos(id, data, obra_id)",
+        "id, descricao, rdo_id, ambiente_id, ambiente:obra_ambientes(id, nome), rdo:rdos(id, data, obra_id)",
       )
       .eq("prioridade", "alta")
       .is("resolvida_em", null),
@@ -169,7 +169,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
   // Pendências críticas (prioridade alta, abertas)
   type PendRow = {
     id: string;
-    texto: string;
+    descricao: string;
     rdo_id: string;
     ambiente_id: string | null;
     ambiente: { id: string; nome: string } | null;
@@ -182,7 +182,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       const obra = p.rdo ? obraById.get(p.rdo.obra_id) : undefined;
       return {
         id: p.id,
-        texto: p.texto,
+        descricao: p.descricao,
         rdo_id: p.rdo_id,
         obra_id: p.rdo?.obra_id ?? "",
         cliente: obra?.nome_cliente ?? "—",
