@@ -21,25 +21,37 @@ export type UserSession = {
   ativo: boolean;
 };
 
-export async function fetchSessao(): Promise<UserSession | null> {
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) return null;
-
+async function carregarPapel(userId: string, fallbackEmail: string): Promise<{
+  papel: Papel | null;
+  nome: string;
+  iniciais: string | null;
+  ativo: boolean;
+}> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any;
   const { data: papelData } = (await sb
     .from("user_papeis")
     .select("user_id, papel, ativo, nome, iniciais")
-    .eq("user_id", authData.user.id)
+    .eq("user_id", userId)
     .maybeSingle()) as { data: UserPapelRow | null };
-
   return {
-    userId: authData.user.id,
-    email: authData.user.email ?? "",
     papel: papelData?.papel ?? null,
-    nome: papelData?.nome || authData.user.email || "",
+    nome: papelData?.nome || fallbackEmail,
     iniciais: papelData?.iniciais ?? null,
     ativo: papelData?.ativo ?? true,
+  };
+}
+
+export async function fetchSessao(): Promise<UserSession | null> {
+  // getSession() lê do storage local (sem HTTP), evitando loops e lentidão
+  const { data: sessData } = await supabase.auth.getSession();
+  const user = sessData.session?.user;
+  if (!user) return null;
+  const extra = await carregarPapel(user.id, user.email ?? "");
+  return {
+    userId: user.id,
+    email: user.email ?? "",
+    ...extra,
   };
 }
 
@@ -48,14 +60,25 @@ export function useSessao() {
 
   useEffect(() => {
     let ativo = true;
-    void fetchSessao().then((s) => {
-      if (ativo) setSessao(s);
+
+    async function aplicar(user: { id: string; email?: string | null } | null | undefined) {
+      if (!ativo) return;
+      if (!user) {
+        setSessao(null);
+        return;
+      }
+      const extra = await carregarPapel(user.id, user.email ?? "");
+      if (!ativo) return;
+      setSessao({ userId: user.id, email: user.email ?? "", ...extra });
+    }
+
+    void supabase.auth.getSession().then(({ data }) => aplicar(data.session?.user ?? null));
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      // sem await aqui — só dispara fetch e atualiza estado
+      void aplicar(session?.user ?? null);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      void fetchSessao().then((s) => {
-        if (ativo) setSessao(s);
-      });
-    });
+
     return () => {
       ativo = false;
       sub.subscription.unsubscribe();
