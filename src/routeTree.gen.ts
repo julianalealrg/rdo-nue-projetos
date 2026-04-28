@@ -13,6 +13,7 @@ import { Route as ObrasRouteImport } from './routes/obras'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RecebimentoIdRouteImport } from './routes/recebimento.$id'
 import { Route as RdoIdRouteImport } from './routes/rdo.$id'
 import { Route as ObraIdRouteImport } from './routes/obra.$id'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
@@ -20,6 +21,7 @@ import { Route as RdoIdEditarRouteImport } from './routes/rdo_.$id.editar'
 import { Route as PrintRdoRdoIdRouteImport } from './routes/print.rdo.$rdoId'
 import { Route as PrintDiarioObraIdRouteImport } from './routes/print.diario.$obraId'
 import { Route as PObraIdRouteImport } from './routes/p.obra.$id'
+import { Route as ObraIdRecebimentoNovoRouteImport } from './routes/obra_.$id.recebimento.novo'
 import { Route as ObraIdRdoNovoRouteImport } from './routes/obra_.$id.rdo.novo'
 
 const ObrasRoute = ObrasRouteImport.update({
@@ -40,6 +42,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecebimentoIdRoute = RecebimentoIdRouteImport.update({
+  id: '/recebimento/$id',
+  path: '/recebimento/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RdoIdRoute = RdoIdRouteImport.update({
@@ -77,6 +84,11 @@ const PObraIdRoute = PObraIdRouteImport.update({
   path: '/p/obra/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ObraIdRecebimentoNovoRoute = ObraIdRecebimentoNovoRouteImport.update({
+  id: '/obra_/$id/recebimento/novo',
+  path: '/obra/$id/recebimento/novo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ObraIdRdoNovoRoute = ObraIdRdoNovoRouteImport.update({
   id: '/obra_/$id/rdo/novo',
   path: '/obra/$id/rdo/novo',
@@ -91,11 +103,13 @@ export interface FileRoutesByFullPath {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
+  '/recebimento/$id': typeof RecebimentoIdRoute
   '/p/obra/$id': typeof PObraIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
   '/print/rdo/$rdoId': typeof PrintRdoRdoIdRoute
   '/rdo/$id/editar': typeof RdoIdEditarRoute
   '/obra/$id/rdo/novo': typeof ObraIdRdoNovoRoute
+  '/obra/$id/recebimento/novo': typeof ObraIdRecebimentoNovoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -105,11 +119,13 @@ export interface FileRoutesByTo {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
+  '/recebimento/$id': typeof RecebimentoIdRoute
   '/p/obra/$id': typeof PObraIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
   '/print/rdo/$rdoId': typeof PrintRdoRdoIdRoute
   '/rdo/$id/editar': typeof RdoIdEditarRoute
   '/obra/$id/rdo/novo': typeof ObraIdRdoNovoRoute
+  '/obra/$id/recebimento/novo': typeof ObraIdRecebimentoNovoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -120,11 +136,13 @@ export interface FileRoutesById {
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/obra/$id': typeof ObraIdRoute
   '/rdo/$id': typeof RdoIdRoute
+  '/recebimento/$id': typeof RecebimentoIdRoute
   '/p/obra/$id': typeof PObraIdRoute
   '/print/diario/$obraId': typeof PrintDiarioObraIdRoute
   '/print/rdo/$rdoId': typeof PrintRdoRdoIdRoute
   '/rdo_/$id/editar': typeof RdoIdEditarRoute
   '/obra_/$id/rdo/novo': typeof ObraIdRdoNovoRoute
+  '/obra_/$id/recebimento/novo': typeof ObraIdRecebimentoNovoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -136,11 +154,13 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/obra/$id'
     | '/rdo/$id'
+    | '/recebimento/$id'
     | '/p/obra/$id'
     | '/print/diario/$obraId'
     | '/print/rdo/$rdoId'
     | '/rdo/$id/editar'
     | '/obra/$id/rdo/novo'
+    | '/obra/$id/recebimento/novo'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,11 +170,13 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/obra/$id'
     | '/rdo/$id'
+    | '/recebimento/$id'
     | '/p/obra/$id'
     | '/print/diario/$obraId'
     | '/print/rdo/$rdoId'
     | '/rdo/$id/editar'
     | '/obra/$id/rdo/novo'
+    | '/obra/$id/recebimento/novo'
   id:
     | '__root__'
     | '/'
@@ -164,11 +186,13 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/obra/$id'
     | '/rdo/$id'
+    | '/recebimento/$id'
     | '/p/obra/$id'
     | '/print/diario/$obraId'
     | '/print/rdo/$rdoId'
     | '/rdo_/$id/editar'
     | '/obra_/$id/rdo/novo'
+    | '/obra_/$id/recebimento/novo'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -179,11 +203,13 @@ export interface RootRouteChildren {
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   ObraIdRoute: typeof ObraIdRoute
   RdoIdRoute: typeof RdoIdRoute
+  RecebimentoIdRoute: typeof RecebimentoIdRoute
   PObraIdRoute: typeof PObraIdRoute
   PrintDiarioObraIdRoute: typeof PrintDiarioObraIdRoute
   PrintRdoRdoIdRoute: typeof PrintRdoRdoIdRoute
   RdoIdEditarRoute: typeof RdoIdEditarRoute
   ObraIdRdoNovoRoute: typeof ObraIdRdoNovoRoute
+  ObraIdRecebimentoNovoRoute: typeof ObraIdRecebimentoNovoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -214,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recebimento/$id': {
+      id: '/recebimento/$id'
+      path: '/recebimento/$id'
+      fullPath: '/recebimento/$id'
+      preLoaderRoute: typeof RecebimentoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rdo/$id': {
@@ -265,6 +298,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PObraIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/obra_/$id/recebimento/novo': {
+      id: '/obra_/$id/recebimento/novo'
+      path: '/obra/$id/recebimento/novo'
+      fullPath: '/obra/$id/recebimento/novo'
+      preLoaderRoute: typeof ObraIdRecebimentoNovoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/obra_/$id/rdo/novo': {
       id: '/obra_/$id/rdo/novo'
       path: '/obra/$id/rdo/novo'
@@ -283,11 +323,13 @@ const rootRouteChildren: RootRouteChildren = {
   AdminUsuariosRoute: AdminUsuariosRoute,
   ObraIdRoute: ObraIdRoute,
   RdoIdRoute: RdoIdRoute,
+  RecebimentoIdRoute: RecebimentoIdRoute,
   PObraIdRoute: PObraIdRoute,
   PrintDiarioObraIdRoute: PrintDiarioObraIdRoute,
   PrintRdoRdoIdRoute: PrintRdoRdoIdRoute,
   RdoIdEditarRoute: RdoIdEditarRoute,
   ObraIdRdoNovoRoute: ObraIdRdoNovoRoute,
+  ObraIdRecebimentoNovoRoute: ObraIdRecebimentoNovoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

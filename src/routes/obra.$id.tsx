@@ -37,6 +37,11 @@ import { ModalGerenciarAmbientes } from "@/components/ModalGerenciarAmbientes";
 import { ExportarMenu } from "@/components/ExportarMenu";
 import { AlterarStatusObra } from "@/components/AlterarStatusObra";
 import { CompartilharObra } from "@/components/CompartilharObra";
+import { listarRecebimentosPorObra, type RecebimentoResumo } from "@/lib/recebimentos";
+
+type TimelineItem =
+  | { kind: "rdo"; data: string; ordemSec: string; payload: RdoResumo }
+  | { kind: "recebimento"; data: string; ordemSec: string; payload: RecebimentoResumo };
 
 export const Route = createFileRoute("/obra/$id")({
   component: DiarioObra,
@@ -123,14 +128,35 @@ function DiarioObraView({
   const [gerenciarAmbientesAberto, setGerenciarAmbientesAberto] = useState(false);
   const [visiveis, setVisiveis] = useState(PAGINA);
 
+  const { data: recebimentos = [] } = useQuery({
+    queryKey: ["recebimentos-obra", obra.id],
+    queryFn: () => listarRecebimentosPorObra(obra.id),
+  });
+
+  const itensTimeline = useMemo<TimelineItem[]>(() => {
+    const itensRdo: TimelineItem[] = rdos.map((r) => ({ kind: "rdo", data: r.data, ordemSec: r.id, payload: r }));
+    const itensRec: TimelineItem[] = recebimentos.map((r) => ({
+      kind: "recebimento",
+      data: r.data,
+      ordemSec: r.created_at,
+      payload: r,
+    }));
+    return [...itensRdo, ...itensRec].sort((a, b) => {
+      if (a.data !== b.data) return a.data < b.data ? 1 : -1;
+      return (b.ordemSec ?? "") > (a.ordemSec ?? "") ? 1 : -1;
+    });
+  }, [rdos, recebimentos]);
+
+  const totalItens = itensTimeline.length;
+
   const periodo = useMemo(() => {
-    if (rdos.length === 0) return "—";
-    const datas = rdos.map((r) => r.data).sort();
+    if (totalItens === 0) return "—";
+    const datas = itensTimeline.map((i) => i.data).sort();
     const primeiro = datas[0];
     const ultimo = datas[datas.length - 1];
     if (primeiro === ultimo) return formatarDataCurta(primeiro);
     return `${formatarDataCurta(primeiro)} – ${formatarDataCurta(ultimo)}`;
-  }, [rdos]);
+  }, [itensTimeline, totalItens]);
 
   function toggle(rdoId: string) {
     setExpandidos((prev) => {
@@ -141,8 +167,8 @@ function DiarioObraView({
     });
   }
 
-  const rdosVisiveis = rdos.slice(0, visiveis);
-  const restantes = rdos.length - rdosVisiveis.length;
+  const itensVisiveis = itensTimeline.slice(0, visiveis);
+  const restantes = totalItens - itensVisiveis.length;
 
   /** Resolver para o ExportarMenu do diário inteiro: carrega todos os RDOs completos sob demanda. */
   async function resolveEscopoDiario() {
@@ -160,19 +186,23 @@ function DiarioObraView({
         resolveEscopoDiario={resolveEscopoDiario}
       />
 
-      {rdos.length === 0 ? (
+      {totalItens === 0 ? (
         <EmptyStateRdos obraId={obra.id} />
       ) : (
         <div className="space-y-3">
-          {rdosVisiveis.map((rdo) => (
-            <CardRdo
-              key={rdo.id}
-              rdo={rdo}
-              obra={obra}
-              expandido={expandidos.has(rdo.id)}
-              onToggle={() => toggle(rdo.id)}
-            />
-          ))}
+          {itensVisiveis.map((item) =>
+            item.kind === "rdo" ? (
+              <CardRdo
+                key={`rdo-${item.payload.id}`}
+                rdo={item.payload}
+                obra={obra}
+                expandido={expandidos.has(item.payload.id)}
+                onToggle={() => toggle(item.payload.id)}
+              />
+            ) : (
+              <CardRecebimento key={`rec-${item.payload.id}`} recebimento={item.payload} />
+            ),
+          )}
           {restantes > 0 && (
             <div className="flex justify-center pt-2">
               <button
@@ -232,6 +262,14 @@ function CabecalhoObra({
           >
             <Plus className="h-4 w-4" />
             Novo RDO
+          </Link>
+          <Link
+            to="/obra/$id/recebimento/novo"
+            params={{ id: obra.id }}
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-nue-graphite bg-white px-3 text-sm text-nue-black hover:bg-nue-taupe/30"
+          >
+            <Plus className="h-4 w-4" />
+            Novo recebimento
           </Link>
           <button
             type="button"
@@ -869,6 +907,52 @@ function ChipsInline({
 }
 
 /* ImprimirDropdown removido — substituído por <ExportarMenu /> */
+
+/* ----------------------------- Card de Recebimento ----------------------------- */
+
+function CardRecebimento({ recebimento }: { recebimento: RecebimentoResumo }) {
+  const dia = partesDiaMesAno(recebimento.data);
+  return (
+    <article className="rounded-sm border border-nue-taupe bg-white">
+      <Link
+        to="/recebimento/$id"
+        params={{ id: recebimento.id }}
+        className="flex w-full items-center gap-3 px-4 py-3 hover:bg-nue-offwhite"
+      >
+        <div
+          className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-sm bg-nue-taupe/40 text-nue-black"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          <span className="text-lg font-medium leading-none">{dia.dia}</span>
+          <span className="text-[9px] tracking-wider">{dia.mesAno}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span
+              className="rounded-sm bg-nue-graphite/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-nue-graphite"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              Recebimento
+            </span>
+            {recebimento.teve_avaria && (
+              <span className="inline-flex items-center gap-1 rounded-sm bg-warning/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-warning">
+                <AlertTriangle className="h-3 w-3" />
+                Avaria
+              </span>
+            )}
+          </div>
+          <p className="mt-1 truncate text-sm text-nue-black">
+            {recebimento.descricao || "Sem descrição"}
+          </p>
+          <p className="text-[12px] text-nue-graphite">
+            {recebimento.total_fotos} foto{recebimento.total_fotos === 1 ? "" : "s"}
+          </p>
+        </div>
+        <ChevronRight className="h-4 w-4 shrink-0 text-nue-graphite" />
+      </Link>
+    </article>
+  );
+}
 
 /* ----------------------------- Empty / Skeleton ----------------------------- */
 

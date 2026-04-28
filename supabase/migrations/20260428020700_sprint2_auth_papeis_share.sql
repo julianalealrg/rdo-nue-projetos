@@ -159,9 +159,8 @@ BEGIN
     RETURN v_existente;
   END IF;
 
-  -- Gera novo token (24 chars base64 url-safe)
-  v_token := encode(gen_random_bytes(18), 'base64');
-  v_token := replace(replace(replace(v_token, '+', '-'), '/', '_'), '=', '');
+  -- Gera novo token (64 chars hex, baseado em 2x gen_random_uuid)
+  v_token := replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '');
 
   INSERT INTO public.obra_share_tokens (obra_id, token, criado_por_user_id)
     VALUES (p_obra_id, v_token, auth.uid());
