@@ -414,8 +414,17 @@ function Th({ children, className = "" }: { children: React.ReactNode; className
 
 function LinhaObra({ obra }: { obra: ObraComResumo }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const prefetch = () =>
+    queryClient.prefetchQuery({
+      queryKey: diarioResumoQueryKey(obra.id),
+      queryFn: () => fetchDiarioObraResumo(obra.id),
+      staleTime: 30_000,
+    });
   return (
     <tr
+      onMouseEnter={prefetch}
+      onFocus={prefetch}
       onClick={() => navigate({ to: "/obra/$id", params: { id: obra.id } })}
       className="cursor-pointer border-b border-nue-taupe/60 transition-colors last:border-0 hover:bg-nue-taupe/30"
     >
