@@ -16,7 +16,6 @@ import {
 import type {
   RdoCompleto,
   ObraComSupervisor,
-  CondicaoLocal,
   TipoVisita,
   Prioridade,
 } from "@/lib/diario";
@@ -136,16 +135,6 @@ const TIPO_VISITA_STYLES: Record<TipoVisita, { bg: string; fg: string; label: st
   },
 };
 
-const CONDICAO_STYLES: Record<CondicaoLocal, { bg: string; fg: string; label: string }> = {
-  praticavel: { bg: "#E8ECE4", fg: "#4A5D43", label: "Praticável" },
-  parcialmente_praticavel: {
-    bg: "#F1E9DA",
-    fg: "#A07B3F",
-    label: "Parcialmente praticável",
-  },
-  impraticavel: { bg: "#F1DDD8", fg: "#8C3A2E", label: "Impraticável" },
-};
-
 const PRIORIDADE_STYLES: Record<Prioridade, { bg: string; fg: string; label: string }> = {
   alta: { bg: "#F1DDD8", fg: "#8C3A2E", label: "Alta" },
   media: { bg: "#F1E9DA", fg: "#A07B3F", label: "Média" },
@@ -204,7 +193,6 @@ function DetalheRdoView({
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const tipo = TIPO_VISITA_STYLES[rdo.tipo_visita];
-  const cond = CONDICAO_STYLES[rdo.condicao_local];
   const horario = formatarIntervaloHorario(rdo.hora_chegada, rdo.hora_saida);
 
   const ultimaEdicao = versoes[0]?.editado_em ?? rdo.updated_at;
@@ -217,7 +205,6 @@ function DetalheRdoView({
         totalVersoes={totalVersoes}
         ultimaEdicaoIso={ultimaEdicao}
         tipo={tipo}
-        cond={cond}
         horario={horario}
         onAbrirVersoes={() => setVersoesAberto(true)}
       />
@@ -512,7 +499,6 @@ function Cabecalho({
   totalVersoes,
   ultimaEdicaoIso,
   tipo,
-  cond,
   horario,
   onAbrirVersoes,
 }: {
@@ -521,7 +507,6 @@ function Cabecalho({
   totalVersoes: number;
   ultimaEdicaoIso: string;
   tipo: { bg: string; fg: string; label: string };
-  cond: { bg: string; fg: string; label: string };
   horario: string;
   onAbrirVersoes: () => void;
 }) {
@@ -632,10 +617,6 @@ function Cabecalho({
         <span aria-hidden>•</span>
         <MiniBadge bg={tipo.bg} fg={tipo.fg}>
           {tipo.label}
-        </MiniBadge>
-        <span aria-hidden>•</span>
-        <MiniBadge bg={cond.bg} fg={cond.fg}>
-          {cond.label}
         </MiniBadge>
         <span aria-hidden>•</span>
         {rdo.supervisor ? (

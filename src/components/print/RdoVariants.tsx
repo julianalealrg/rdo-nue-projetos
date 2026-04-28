@@ -8,7 +8,6 @@ import {
   formatarDataCurta,
   formatarIntervaloHorario,
 } from "@/lib/datas";
-import { PraticDot, condicaoToPraticabilidade, praticLabel } from "./PageChrome";
 
 type GrupoAmbiente = {
   id: string;
@@ -218,8 +217,6 @@ export function RDOv1({ rdo }: { rdo: RdoCompleto }) {
       </header>
 
       <div className="rdo-status">
-        <PraticDot kind={condicaoToPraticabilidade(rdo.condicao_local)} />
-        <span className="pratic-label">{praticLabel(rdo)}</span>
         <span className="pratic-sub">
           {totAmbs} ambientes · {totFotos} fotos
         </span>
@@ -298,13 +295,6 @@ export function RDOv1({ rdo }: { rdo: RdoCompleto }) {
 export function RDOv3({ rdo }: { rdo: RdoCompleto }) {
   const { grupos, fotosSemAmb, pendGerais, pontosGerais } = agruparPorAmbiente(rdo);
   const totFotos = rdo.fotos.length;
-  const pratic = condicaoToPraticabilidade(rdo.condicao_local);
-  const praticShort =
-    pratic === "praticavel"
-      ? "Praticável"
-      : pratic === "parcial"
-        ? "Parc. praticável"
-        : "Impraticável";
 
   return (
     <article className="rdo rdo-v3">
@@ -327,15 +317,6 @@ export function RDOv3({ rdo }: { rdo: RdoCompleto }) {
           label="Hora"
           value={formatarIntervaloHorario(rdo.hora_chegada, rdo.hora_saida)}
           mono
-        />
-        <Field
-          label="Praticabilidade"
-          render={
-            <span style={{ display: "flex", alignItems: "center", gap: "2mm" }}>
-              <PraticDot kind={pratic} />
-              <span>{praticShort}</span>
-            </span>
-          }
         />
         <Field label="Responsável" value={rdo.supervisor?.nome ?? "—"} />
 

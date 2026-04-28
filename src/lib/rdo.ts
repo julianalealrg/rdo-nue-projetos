@@ -8,7 +8,6 @@ import type {
   RdoPendencia,
   RdoPontoAtencao,
   ObraComSupervisor,
-  CondicaoLocal,
   TipoVisita,
   Prioridade,
 } from "@/lib/diario";
@@ -33,7 +32,6 @@ export type FormRdoState = {
   hora_chegada: string;
   hora_saida: string;
   tipo_visita: TipoVisita | "";
-  condicao_local: CondicaoLocal | "";
   registros: string;
   proximos_passos: string;
   equipe_nue: EquipeItem[];
@@ -166,7 +164,6 @@ export function rdoParaForm(rdo: RdoCompleto): FormRdoState {
     hora_chegada: (rdo.hora_chegada ?? "").slice(0, 5),
     hora_saida: (rdo.hora_saida ?? "").slice(0, 5),
     tipo_visita: rdo.tipo_visita,
-    condicao_local: rdo.condicao_local,
     registros: rdo.registros ?? "",
     proximos_passos: rdo.proximos_passos ?? "",
     equipe_nue: rdo.equipe_nue.map((e) => ({ nome: e.nome, funcao: e.funcao ?? "" })),
@@ -191,7 +188,7 @@ export async function criarRdoInicial(args: {
   supervisor_id: string | null;
   form: FormRdoState;
 }): Promise<string> {
-  if (!args.form.tipo_visita || !args.form.condicao_local) {
+  if (!args.form.tipo_visita) {
     throw new Error("Campos obrigatórios mínimos não preenchidos");
   }
   const id = await gerarProximoIdRdo();
@@ -203,7 +200,7 @@ export async function criarRdoInicial(args: {
     hora_chegada: args.form.hora_chegada,
     hora_saida: args.form.hora_saida || null,
     tipo_visita: args.form.tipo_visita,
-    condicao_local: args.form.condicao_local,
+    condicao_local: "praticavel",
     registros: args.form.registros,
     proximos_passos: args.form.proximos_passos,
     finalizado: false,
@@ -225,7 +222,6 @@ export async function atualizarRdoCampos(args: {
       hora_chegada: args.form.hora_chegada,
       hora_saida: args.form.hora_saida || null,
       tipo_visita: args.form.tipo_visita || undefined,
-      condicao_local: args.form.condicao_local || undefined,
       registros: args.form.registros,
       proximos_passos: args.form.proximos_passos,
       ...(args.finalizado !== undefined ? { finalizado: args.finalizado } : {}),

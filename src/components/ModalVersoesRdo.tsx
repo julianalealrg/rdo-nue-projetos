@@ -14,11 +14,6 @@ const TIPO_LABEL: Record<string, string> = {
   medicao: "Medição",
   supervisao_montagem: "Supervisão de montagem",
 };
-const COND_LABEL: Record<string, string> = {
-  praticavel: "Praticável",
-  parcialmente_praticavel: "Parcialmente praticável",
-  impraticavel: "Impraticável",
-};
 
 function formatDateTime(iso: string): string {
   const fmt = new Intl.DateTimeFormat("pt-BR", {
@@ -49,8 +44,6 @@ function rotuloCampo(c: string): string {
       return "Saída";
     case "tipo_visita":
       return "Tipo de visita";
-    case "condicao_local":
-      return "Condição do local";
     case "registros":
       return "Registros do dia";
     case "proximos_passos":
@@ -65,7 +58,6 @@ function rotuloCampo(c: string): string {
 function fmtValor(campo: string, valor: unknown): string {
   if (valor == null || valor === "") return "—";
   if (campo === "tipo_visita") return TIPO_LABEL[String(valor)] ?? String(valor);
-  if (campo === "condicao_local") return COND_LABEL[String(valor)] ?? String(valor);
   if (campo === "finalizado") return valor ? "Sim" : "Não";
   if (typeof valor === "string" && valor.length > 80) return valor.slice(0, 80) + "…";
   return String(valor);
@@ -84,7 +76,6 @@ function calcularDiff(snapshot: unknown, atual: RdoCompleto): Diff {
     "hora_chegada",
     "hora_saida",
     "tipo_visita",
-    "condicao_local",
     "registros",
     "proximos_passos",
     "finalizado",

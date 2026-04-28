@@ -35,6 +35,7 @@ import { StatusBadge, SupervisorAvatar } from "@/components/ObraBadges";
 import { Lightbox } from "@/components/Lightbox";
 import { ModalGerenciarAmbientes } from "@/components/ModalGerenciarAmbientes";
 import { ExportarMenu } from "@/components/ExportarMenu";
+import { AlterarStatusObra } from "@/components/AlterarStatusObra";
 
 export const Route = createFileRoute("/obra/$id")({
   component: DiarioObra,
@@ -209,10 +210,7 @@ function CabecalhoObra({
   resolveEscopoDiario: () => Promise<{ tipo: "diario"; obra: ObraComSupervisor; rdos: RdoCompleto[] }>;
 }) {
   return (
-    <section
-      className="rounded-sm border border-nue-taupe bg-white"
-      style={{ padding: 20 }}
-    >
+    <section className="rounded-sm border border-nue-taupe bg-white p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <nav
           className="text-[12px] text-nue-graphite"
@@ -246,6 +244,11 @@ function CabecalhoObra({
             resolveEscopo={resolveEscopoDiario}
             rotulo="Exportar diário"
           />
+          <AlterarStatusObra
+            obraId={obra.id}
+            statusAtual={obra.status}
+            motivoPausaAtual={obra.motivo_pausa ?? ""}
+          />
         </div>
       </div>
 
@@ -257,8 +260,8 @@ function CabecalhoObra({
           {obra.id}
         </div>
         <h2
-          className="mt-0.5 text-nue-black"
-          style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1.15 }}
+          className="mt-0.5 text-2xl text-nue-black sm:text-[30px]"
+          style={{ fontFamily: "var(--font-display)", lineHeight: 1.15 }}
         >
           {obra.nome_cliente}
         </h2>
@@ -285,6 +288,14 @@ function CabecalhoObra({
         <Metadado>
           <span className="text-nue-graphite">Status:</span>{" "}
           <StatusBadge status={obra.status} />
+          {obra.status === "pausada" && obra.motivo_pausa && (
+            <span
+              className="ml-1.5 text-nue-graphite/80"
+              title={obra.motivo_pausa}
+            >
+              · {obra.motivo_pausa}
+            </span>
+          )}
         </Metadado>
         <Divisor />
         <Metadado>

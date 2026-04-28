@@ -192,20 +192,10 @@ export function Cover({ obra, rdos, periodo }: CoverData) {
         <div className="toc-head">Índice de relatórios</div>
         {rdos.map((rdo) => {
           const ambs = ambientesNomesDoRdo(rdo);
-          const pratic = condicaoToPraticabilidade(rdo.condicao_local);
-          const praticShort =
-            pratic === "praticavel"
-              ? "Praticável"
-              : pratic === "parcial"
-                ? "Parc. praticável"
-                : "Impraticável";
           return (
             <div key={rdo.id} className="toc-row">
               <span className="toc-id">{rdo.id}</span>
               <span>{ambs.length > 0 ? ambs.join(" · ") : "Sem ambientes"}</span>
-              <span className="toc-pratic">
-                <PraticDot kind={pratic} /> {praticShort}
-              </span>
               <span className="toc-time">
                 {formatarDataCurta(rdo.data)}{" "}
                 {formatarIntervaloHorario(rdo.hora_chegada, rdo.hora_saida).split(

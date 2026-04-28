@@ -25,7 +25,7 @@ function Dashboard() {
     return (
       <div className="space-y-6">
         <header className="space-y-1">
-          <h1 className="text-3xl text-nue-black">Início</h1>
+          <h1 className="text-2xl text-nue-black sm:text-3xl">Início</h1>
           <p className="text-[15px] text-nue-graphite">Carregando dashboard…</p>
         </header>
       </div>
@@ -36,7 +36,7 @@ function Dashboard() {
     return (
       <div className="space-y-6">
         <header className="space-y-1">
-          <h1 className="text-3xl text-nue-black">Início</h1>
+          <h1 className="text-2xl text-nue-black sm:text-3xl">Início</h1>
           <p className="text-[15px] text-danger">
             {error instanceof Error ? error.message : "Erro ao carregar dashboard."}
           </p>

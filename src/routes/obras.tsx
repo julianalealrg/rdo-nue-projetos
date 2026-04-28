@@ -115,19 +115,33 @@ function PainelObras() {
 
       {/* Conteúdo principal */}
       {isLoading ? (
-        vista === "lista" ? (
-          <SkeletonTabela />
-        ) : (
-          <SkeletonGrid />
-        )
+        <>
+          <div className="md:hidden">
+            <SkeletonGrid />
+          </div>
+          <div className="hidden md:block">
+            {vista === "lista" ? <SkeletonTabela /> : <SkeletonGrid />}
+          </div>
+        </>
       ) : data && data.obras.length === 0 ? (
         <EmptyStateNenhumaObra onCadastrar={() => setModalAberto(true)} />
       ) : obrasFiltradas.length === 0 ? (
         <EmptyStateFiltros onLimpar={limparFiltros} />
-      ) : vista === "lista" ? (
-        <TabelaObras obras={obrasFiltradas} />
       ) : (
-        <GridObras obras={obrasFiltradas} />
+        <>
+          {/* Mobile: sempre grid (tabela quebra em telas pequenas) */}
+          <div className="md:hidden">
+            <GridObras obras={obrasFiltradas} />
+          </div>
+          {/* Desktop: respeita escolha do usuário */}
+          <div className="hidden md:block">
+            {vista === "lista" ? (
+              <TabelaObras obras={obrasFiltradas} />
+            ) : (
+              <GridObras obras={obrasFiltradas} />
+            )}
+          </div>
+        </>
       )}
 
       <ModalNovaObra
@@ -252,7 +266,7 @@ function FilterBar({
         />
       </div>
 
-      <div className="flex items-center gap-1 self-start lg:self-auto">
+      <div className="hidden md:flex items-center gap-1 self-start lg:self-auto">
         <button
           type="button"
           onClick={() => onVistaChange("lista")}

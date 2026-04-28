@@ -65,7 +65,6 @@ type Erros = Partial<{
   data: string;
   hora_chegada: string;
   tipo_visita: string;
-  condicao_local: string;
   registros: string;
 }>;
 
@@ -77,7 +76,6 @@ function estadoInicialCriar(): FormRdoState {
     hora_chegada: horaAgoraRecife(),
     hora_saida: "",
     tipo_visita: "",
-    condicao_local: "",
     registros: "",
     proximos_passos: "",
     equipe_nue: [],
@@ -94,9 +92,6 @@ const schemaFinalizar = z.object({
   hora_chegada: z.string().min(1, "Informe a hora de chegada"),
   tipo_visita: z.enum(["medicao", "supervisao_montagem"], {
     message: "Selecione o tipo de visita",
-  }),
-  condicao_local: z.enum(["praticavel", "parcialmente_praticavel", "impraticavel"], {
-    message: "Selecione a condição do local",
   }),
   registros: z.string().trim().min(1, "Descreva os registros do dia"),
 });
@@ -179,8 +174,7 @@ export function FormularioRdo(props: Props) {
     return (
       f.data.length > 0 &&
       f.hora_chegada.length > 0 &&
-      f.tipo_visita.length > 0 &&
-      f.condicao_local.length > 0
+      f.tipo_visita.length > 0
     );
   }, []);
 
@@ -381,7 +375,6 @@ export function FormularioRdo(props: Props) {
       data: f.data,
       hora_chegada: f.hora_chegada,
       tipo_visita: f.tipo_visita || undefined,
-      condicao_local: f.condicao_local || undefined,
       registros: f.registros,
     });
     if (!parsed.success) {
@@ -391,12 +384,11 @@ export function FormularioRdo(props: Props) {
         if (path === "data") novosErros.data = issue.message;
         else if (path === "hora_chegada") novosErros.hora_chegada = issue.message;
         else if (path === "tipo_visita") novosErros.tipo_visita = issue.message;
-        else if (path === "condicao_local") novosErros.condicao_local = issue.message;
         else if (path === "registros") novosErros.registros = issue.message;
       }
       setErros(novosErros);
       // Scroll até o primeiro campo com erro
-      const ordem: (keyof Erros)[] = ["data", "hora_chegada", "tipo_visita", "condicao_local", "registros"];
+      const ordem: (keyof Erros)[] = ["data", "hora_chegada", "tipo_visita", "registros"];
       const primeiro = ordem.find((k) => novosErros[k]);
       if (primeiro) {
         const el = refsCampos.current.get(primeiro);
@@ -444,9 +436,8 @@ export function FormularioRdo(props: Props) {
     if (!form.hora_chegada) faltantes.push("hora de chegada");
     if (!props.obra.supervisor) faltantes.push("responsável pelo RDO");
     if (!form.tipo_visita) faltantes.push("tipo de visita");
-    if (!form.condicao_local) faltantes.push("condição do local");
     return faltantes;
-  }, [form.data, form.hora_chegada, form.tipo_visita, form.condicao_local, props.obra.supervisor]);
+  }, [form.data, form.hora_chegada, form.tipo_visita, props.obra.supervisor]);
 
   const mensagemBloqueio =
     camposFaltantesIdentificacao.length > 0
@@ -830,19 +821,6 @@ function SecaoIdentificacao({
           />
           <ErroCampo msg={erros.tipo_visita} />
         </div>
-        <div className="sm:col-span-2">
-          <Label>Condição do local</Label>
-          <SegmentedCondicao
-            valor={form.condicao_local}
-            erro={!!erros.condicao_local}
-            onChange={(v) => {
-              onChange("condicao_local", v);
-              setTimeout(onCommit, 0);
-            }}
-            registrarRef={(el) => registrarRef("condicao_local", el)}
-          />
-          <ErroCampo msg={erros.condicao_local} />
-        </div>
       </div>
     </CardSecao>
   );
@@ -888,54 +866,6 @@ function SegmentedTipoVisita({
                 ? "bg-nue-black text-nue-offwhite"
                 : "bg-white text-nue-black hover:bg-nue-taupe/40"
             }`}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-const CONDICAO_OPCOES: { v: CondicaoLocal; label: string; bg: string; fg: string }[] = [
-  { v: "praticavel", label: "Praticável", bg: "#E8ECE4", fg: "#4A5D43" },
-  { v: "parcialmente_praticavel", label: "Parcialmente praticável", bg: "#F1E9DA", fg: "#A07B3F" },
-  { v: "impraticavel", label: "Impraticável", bg: "#F1DDD8", fg: "#8C3A2E" },
-];
-
-function SegmentedCondicao({
-  valor,
-  erro,
-  onChange,
-  registrarRef,
-}: {
-  valor: CondicaoLocal | "";
-  erro: boolean;
-  onChange: (v: CondicaoLocal) => void;
-  registrarRef: (el: HTMLElement | null) => void;
-}) {
-  return (
-    <div
-      ref={(el) => registrarRef(el)}
-      tabIndex={-1}
-      role="radiogroup"
-      className={`inline-flex w-full overflow-hidden rounded-sm border ${
-        erro ? "border-[#8C3A2E]" : "border-nue-taupe"
-      }`}
-    >
-      {CONDICAO_OPCOES.map((opt, i) => {
-        const ativo = valor === opt.v;
-        return (
-          <button
-            key={opt.v}
-            type="button"
-            role="radio"
-            aria-checked={ativo}
-            onClick={() => onChange(opt.v)}
-            className={`flex-1 px-3 py-2 text-sm transition-colors ${
-              i > 0 ? "border-l border-nue-taupe" : ""
-            } ${ativo ? "" : "bg-white text-nue-black hover:bg-nue-taupe/40"}`}
-            style={ativo ? { backgroundColor: opt.bg, color: opt.fg, fontWeight: 500 } : undefined}
           >
             {opt.label}
           </button>
