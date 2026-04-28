@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate, Link, useRouter } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, LayoutGrid, List, Plus, Building2, ChevronDown } from "lucide-react";
 import { fetchPainelObras } from "@/lib/painel";
 import type { ObraComResumo } from "@/lib/painel";
+import { fetchDiarioObraResumo } from "@/lib/diario";
+import { diarioResumoQueryKey } from "@/routes/obra.$id";
 import { formatarDataRelativa } from "@/lib/datas";
 import { ModalNovaObra } from "@/components/ModalNovaObra";
 import { StatusBadge, SupervisorAvatar } from "@/components/ObraBadges";
