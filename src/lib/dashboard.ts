@@ -89,8 +89,9 @@ export async function fetchDashboardData(): Promise<DashboardData> {
       .select("id, nome_cliente, status, supervisor_id"),
     supabase
       .from("supervisores")
-      .select("id, nome, iniciais")
+      .select("id, nome, iniciais, user_id")
       .eq("ativo", true)
+      .not("user_id", "is", null)
       .order("nome", { ascending: true }),
     supabase
       .from("rdos")

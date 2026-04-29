@@ -38,6 +38,7 @@ export async function fetchPainelObras(): Promise<DashboardData> {
       .from("supervisores")
       .select("*")
       .eq("ativo", true)
+      .not("user_id", "is", null)
       .order("nome", { ascending: true }),
     supabase.from("rdos").select("id, obra_id, data"),
     supabase
