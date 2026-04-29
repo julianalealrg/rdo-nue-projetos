@@ -9,6 +9,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { fetchDashboardData } from "@/lib/dashboard";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { formatarDataRelativa, formatarDataCurta } from "@/lib/datas";
 
 export const Route = createFileRoute("/")({
@@ -258,11 +259,17 @@ function Grafico14Dias({
 }: {
   serie: import("@/lib/dashboard").DashboardSerieDia[];
 }) {
-  const max = useMemo(
-    () => Math.max(1, ...serie.map((d) => d.total)),
-    [serie],
+  const isMobile = useIsMobile();
+  const serieVisivel = useMemo(
+    () => (isMobile ? serie.slice(-7) : serie),
+    [isMobile, serie],
   );
-  const totalPeriodo = serie.reduce((acc, d) => acc + d.total, 0);
+  const max = useMemo(
+    () => Math.max(1, ...serieVisivel.map((d) => d.total)),
+    [serieVisivel],
+  );
+  const totalPeriodo = serieVisivel.reduce((acc, d) => acc + d.total, 0);
+  const dias = serieVisivel.length;
 
   return (
     <section className="rounded-sm border border-nue-taupe bg-white">
@@ -270,7 +277,7 @@ function Grafico14Dias({
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-nue-graphite" />
           <h2 className="text-[15px] font-medium text-nue-black">
-            RDOs por dia (últimos 14 dias)
+            RDOs por dia (últimos {dias} dias)
           </h2>
         </div>
         <span className="text-[12px] text-nue-graphite">
@@ -278,12 +285,10 @@ function Grafico14Dias({
         </span>
       </header>
       <div className="px-3 py-4 sm:px-4">
-        <div className="flex items-end gap-1 sm:gap-1.5" style={{ height: 128 }}>
-          {serie.map((d, idx) => {
+        <div className="flex items-end gap-2 sm:gap-1.5" style={{ height: 128 }}>
+          {serieVisivel.map((d) => {
             const altura = Math.max(2, (d.total / max) * 120);
             const [, m, dia] = d.data.split("-");
-            // Em mobile (≤14 barras em tela estreita), mostra label só a cada 2 dias + último
-            const mostrarLabelMobile = idx % 2 === 1 || idx === serie.length - 1;
             return (
               <div
                 key={d.data}
@@ -299,11 +304,7 @@ function Grafico14Dias({
                   }
                   style={{ height: `${altura}px` }}
                 />
-                <span
-                  className={`mt-1 text-[9px] leading-none text-nue-graphite/70 sm:text-[10px] ${
-                    mostrarLabelMobile ? "" : "hidden sm:inline"
-                  }`}
-                >
+                <span className="mt-1 text-[10px] leading-none text-nue-graphite/70">
                   {dia}/{m}
                 </span>
               </div>
