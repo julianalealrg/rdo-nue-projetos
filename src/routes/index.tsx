@@ -277,15 +277,17 @@ function Grafico14Dias({
           Total: {totalPeriodo}
         </span>
       </header>
-      <div className="px-4 py-4">
-        <div className="flex items-end gap-1.5" style={{ height: 128 }}>
-          {serie.map((d) => {
+      <div className="px-3 py-4 sm:px-4">
+        <div className="flex items-end gap-1 sm:gap-1.5" style={{ height: 128 }}>
+          {serie.map((d, idx) => {
             const altura = Math.max(2, (d.total / max) * 120);
             const [, m, dia] = d.data.split("-");
+            // Em mobile (≤14 barras em tela estreita), mostra label só a cada 2 dias + último
+            const mostrarLabelMobile = idx % 2 === 1 || idx === serie.length - 1;
             return (
               <div
                 key={d.data}
-                className="flex flex-1 flex-col items-center justify-end"
+                className="flex min-w-0 flex-1 flex-col items-center justify-end"
                 style={{ height: "100%" }}
                 title={`${formatarDataCurta(d.data)} · ${d.total} RDO${d.total === 1 ? "" : "s"}`}
               >
@@ -297,7 +299,11 @@ function Grafico14Dias({
                   }
                   style={{ height: `${altura}px` }}
                 />
-                <span className="mt-1 text-[10px] text-nue-graphite/70">
+                <span
+                  className={`mt-1 text-[9px] leading-none text-nue-graphite/70 sm:text-[10px] ${
+                    mostrarLabelMobile ? "" : "hidden sm:inline"
+                  }`}
+                >
                   {dia}/{m}
                 </span>
               </div>
