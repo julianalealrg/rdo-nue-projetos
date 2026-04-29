@@ -603,22 +603,24 @@ function CabecalhoForm({
         <span className="text-nue-black">{rdoId ?? "Novo RDO"}</span>
       </nav>
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="space-y-1">
           <h1
-            className="text-nue-black"
-            style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1.15 }}
+            className="text-2xl text-nue-black sm:text-3xl"
+            style={{ fontFamily: "var(--font-display)", lineHeight: 1.15 }}
           >
             {titulo}
           </h1>
-          <p className="text-[14px] text-nue-graphite">
+          <p className="text-[13px] text-nue-graphite sm:text-[14px]">
             <span className="text-nue-black">{obra.nome_cliente}</span>
             <span className="mx-2 text-nue-graphite/50">·</span>
             <span>{obra.endereco}</span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <IndicadorSave saveStatus={saveStatus} onRetry={onRetry} />
+        <div className="flex items-center justify-between gap-3 sm:justify-start">
+          <div className="hidden sm:block">
+            <IndicadorSave saveStatus={saveStatus} onRetry={onRetry} />
+          </div>
           <button
             type="button"
             onClick={onCancelar}
@@ -1144,7 +1146,7 @@ function SecaoPendencias({
                         atualizar(idx, { prioridade: p.v });
                         setTimeout(onCommit, 0);
                       }}
-                      className={`rounded-sm border px-2.5 py-1 text-[11px] uppercase transition-colors ${
+                      className={`min-h-[36px] rounded-sm border px-3 py-1.5 text-[11px] uppercase transition-colors sm:min-h-0 sm:px-2.5 sm:py-1 ${
                         ativo ? "border-transparent" : "border-nue-taupe text-nue-graphite hover:bg-nue-taupe/40"
                       }`}
                       style={
@@ -1283,17 +1285,16 @@ function RodapeFixo({
 }) {
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-nue-taupe bg-white"
-      style={{ padding: "12px 24px" }}
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-nue-taupe bg-white px-3 py-2 sm:px-6 sm:py-3"
     >
-      <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 md:pl-60">
+      <div className="mx-auto flex max-w-[1400px] flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 md:pl-60">
         <IndicadorSave saveStatus={saveStatus} onRetry={onRetry} />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-2">
           <button
             type="button"
             onClick={onSalvarRascunho}
             disabled={finalizando}
-            className="h-9 rounded-sm border border-nue-taupe bg-white px-4 text-sm text-nue-black transition-colors hover:bg-nue-taupe/40 disabled:opacity-40"
+            className="h-10 flex-1 rounded-sm border border-nue-taupe bg-white px-3 text-sm text-nue-black transition-colors hover:bg-nue-taupe/40 disabled:opacity-40 sm:h-9 sm:flex-none sm:px-4"
           >
             Salvar rascunho
           </button>
@@ -1301,7 +1302,7 @@ function RodapeFixo({
             type="button"
             onClick={onFinalizar}
             disabled={finalizando}
-            className="h-9 rounded-sm bg-nue-black px-4 text-sm font-medium text-nue-offwhite transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="h-10 flex-1 rounded-sm bg-nue-black px-3 text-sm font-medium text-nue-offwhite transition-opacity hover:opacity-90 disabled:opacity-50 sm:h-9 sm:flex-none sm:px-4"
           >
             {finalizando ? "Finalizando..." : "Finalizar RDO"}
           </button>
@@ -1327,7 +1328,7 @@ function DialogoConfirmar({
       aria-modal="true"
     >
       <div className="absolute inset-0 bg-nue-black/60" onClick={onCancelar} aria-hidden />
-      <div className="relative w-full max-w-[420px] rounded-md bg-white shadow-lg">
+      <div className="relative w-full max-w-[95vw] sm:max-w-[420px] rounded-md bg-white shadow-lg">
         <header className="flex items-center justify-between border-b border-nue-taupe px-5 py-4">
           <h2 className="text-lg text-nue-black" style={{ fontFamily: "var(--font-display)" }}>
             Descartar alterações?
@@ -1998,7 +1999,7 @@ function DialogoSimples({
       aria-modal="true"
     >
       <div className="absolute inset-0 bg-nue-black/60" onClick={onCancelar} />
-      <div className="relative w-full max-w-[420px] rounded-md bg-white p-5 shadow-lg">
+      <div className="relative w-full max-w-[95vw] sm:max-w-[420px] rounded-md bg-white p-5 shadow-lg">
         <h3 className="text-lg text-nue-black" style={{ fontFamily: "var(--font-display)" }}>
           {titulo}
         </h3>
@@ -2510,7 +2511,7 @@ function CardAmbiente({
 
       <div className="mt-3">
         {(fotos.length > 0 || uploads.length > 0) && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {fotos.map((foto) => {
               const idxG = idxGlobal(foto);
               return (
