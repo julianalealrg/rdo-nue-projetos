@@ -9,6 +9,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { fetchDashboardData } from "@/lib/dashboard";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { formatarDataRelativa, formatarDataCurta } from "@/lib/datas";
 
 export const Route = createFileRoute("/")({
