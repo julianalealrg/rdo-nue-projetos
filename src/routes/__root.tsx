@@ -13,6 +13,7 @@ import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { AppShell } from "@/components/AppShell";
+import { PWAInitializer } from "@/components/PWAInitializer";
 import { useSessao } from "@/lib/auth";
 
 interface RouterContext {
@@ -45,10 +46,15 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Sistema RDO Obras — NUE Projetos" },
       { name: "description", content: "Relatório Diário de Obra — NUE Projetos" },
       { name: "author", content: "NUE Projetos" },
+      { name: "theme-color", content: "#141412" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "RDO NUE" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { property: "og:title", content: "Sistema RDO Obras — NUE Projetos" },
       { property: "og:description", content: "Relatório Diário de Obra — NUE Projetos" },
       { property: "og:type", content: "website" },
@@ -58,7 +64,13 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/BTlw5IU358UKxYWwGjE8p8hR7mS2/social-images/social-1777471229782-2052ea5c-1fcc-4406-a450-9de587fa2ff9.webp" },
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/BTlw5IU358UKxYWwGjE8p8hR7mS2/social-images/social-1777471229782-2052ea5c-1fcc-4406-a450-9de587fa2ff9.webp" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", type: "image/svg+xml", href: "/icon.svg" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -130,6 +142,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <PWAInitializer />
       <AuthGate>
         {semChrome ? (
           <Outlet />
